@@ -17,7 +17,6 @@ package tinycsp.examples;
 
 
 
-import minicp.util.exception.NotImplementedException;
 import tinycsp.TinyCSP;
 import tinycsp.Variable;
 
@@ -117,10 +116,40 @@ public class GraphColoringTinyCSP {
      *         or null if the problem is unfeasible
      */
     public static int[] solve(GraphColoringInstance instance) {
-        // TODO: solve the graph coloring problem using TinyCSP and return a solution
-        // Hint: you can stop the search on first solution throwing and catching an exception
-        //       in the onSolution closure or you can modify the dfs search
-         throw new NotImplementedException("GraphColoringTinyCSP");
+        TinyCSP csp= new TinyCSP();
+
+        //get the num of vertices of the problem
+        int num_vertices=instance.n;
+
+        //Initialize the variables for solving the problem
+        Variable[] v = new Variable[num_vertices];
+        for(int i=0;i<num_vertices;i++){
+            v[i]=csp.makeVariable(instance.maxColor);
+        }
+
+        //set constraint
+        for (int[] edge : instance.edges){//edge[0]=vertex_1 ; edge[1]=vertex=2
+
+            int vertex_1=edge[0];
+            int vertex_2=edge[1];
+            //vertex_1 (edge[0]) cannot have the same color as vertex_2 (edge[1])
+            //because they are two nodes connected by an edge
+            csp.notEqual(v[vertex_1],v[vertex_2],0);
+        }
+        ArrayList<int []> solutions = new ArrayList<>();
+
+        try {
+            csp.dfs(solution -> {
+                solutions.add(solution);
+                throw new FirstSolution(); //I found the solution so stop it
+            });
+        }catch (FirstSolution ignored){
+        }
+
+        return solutions.get(0);
+    }
+
+    static class FirstSolution extends RuntimeException {
     }
 
 
