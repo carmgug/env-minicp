@@ -95,8 +95,13 @@ public class StateSparseSet {
      */
     public int fillArray(int[] dest) {
         int s = size.value();
-        for (int i = 0; i < s; i++)
-            dest[i] = values[i] + ofs;
+        if(ofs==0){
+            System.arraycopy(values,0,dest,0,s);
+        }
+        else {
+            for (int i = 0; i < s; i++)
+                dest[i] = values[i] + ofs;
+        }
         return s;
     }
 

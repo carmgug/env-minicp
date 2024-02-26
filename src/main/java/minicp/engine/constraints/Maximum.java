@@ -20,6 +20,8 @@ import minicp.engine.core.AbstractConstraint;
 import minicp.engine.core.IntVar;
 import minicp.util.exception.NotImplementedException;
 
+import java.util.Arrays;
+
 /**
  * Maximum Constraint
  */
@@ -39,23 +41,50 @@ public class Maximum extends AbstractConstraint {
         assert (x.length > 0);
         this.x = x;
         this.y = y;
+
     }
 
 
     @Override
     public void post() {
-        // TODO
-        //  - call the constraint on all bound changes for the variables (x.propagateOnBoundChange(this))
-        //  - call a first time the propagate() method to trigger the propagation
-         throw new NotImplementedException("Maximum");
+        propagate();
+
+        for(IntVar var:x){
+            var.propagateOnBoundChange(this);
+        }
+        y.propagateOnBoundChange(this);
+
+
     }
+
 
 
     @Override
     public void propagate() {
-        // TODO
-        //  - update the min and max values of each x[i] based on the bounds of y
-        //  - update the min and max values of each y based on the bounds of all x[i]
-         throw new NotImplementedException("Maximum");
+        int max=Integer.MIN_VALUE;
+        int count_x_intersect_y=0; //Numero di variabili che si sovrappongono a y
+        int idx_intersect_y=-1; //Indice dell'ultima variabile che si sovrappone a y
+
+        for(int i=0;i<x.length;i++){
+            x[i].removeAbove(y.max()); //Rimuoviamo i valori che sono maggiori di Y
+            max=Math.max(x[i].max(),max); //Teniamo traccia del massimo corrente
+            y.removeBelow(x[i].min()); //Rimuoviamo i valori di y che sono minori di del minimo di x
+            if(x[i].max()>=y.min()){
+                count_x_intersect_y++;
+                idx_intersect_y=i;
+            }
+        }
+        if(count_x_intersect_y==1){
+            x[idx_intersect_y].removeBelow(y.min());
+        }
+
+        y.removeAbove(max);
+
+
+
+
+
+
+
     }
 }

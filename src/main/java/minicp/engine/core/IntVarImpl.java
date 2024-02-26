@@ -21,6 +21,9 @@ import minicp.util.exception.InconsistencyException;
 import minicp.util.exception.NotImplementedException;
 
 import java.security.InvalidParameterException;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -91,8 +94,6 @@ public class IntVarImpl implements IntVar {
         onBound = new StateStack<>(cp.getStateManager());
     }
 
-
-
     /**
      * Creates a variable with a given set of values as initial domain.
      *
@@ -100,7 +101,35 @@ public class IntVarImpl implements IntVar {
      * @param values the initial values in the domain, it must be nonempty
      */
     public IntVarImpl(Solver cp, Set<Integer> values) {
-         throw new NotImplementedException();
+
+        if(values.size()==0) throw new InvalidParameterException();
+        int max=Integer.MIN_VALUE;
+        int min=Integer.MAX_VALUE;
+        for(Integer val:values){
+            if(max<val){
+                max=val;
+            }
+            if(min>val){
+                min=val;
+            }
+        }
+        this.cp=cp;
+        domain=new SparseSetDomain(cp.getStateManager(),min,max);
+
+        onDomain= new StateStack<>(cp.getStateManager());
+        onFix=new StateStack<>(cp.getStateManager());
+        onBound=new StateStack<>(cp.getStateManager());
+
+        //Removes value
+        for(int i=min;i<max;i++){
+            if(!values.contains(i)){
+                remove(i);
+            }
+        }
+
+
+
+
     }
 
     @Override
@@ -177,7 +206,8 @@ public class IntVarImpl implements IntVar {
 
     @Override
     public int fillArray(int[] dest) {
-         throw new NotImplementedException();
+        domain.fillArray(dest);
+        return size();
     }
 
     @Override
