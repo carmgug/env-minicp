@@ -24,9 +24,13 @@ import minicp.state.StateInt;
 import minicp.state.StateManager;
 import minicp.util.exception.InconsistencyException;
 import minicp.util.exception.NotImplementedException;
+import minicp.engine.constraints.Element2D;
+
 
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  *
@@ -62,22 +66,69 @@ public class Element1D extends AbstractConstraint {
             sortedPerm[i] = i;
         }
         Arrays.sort(sortedPerm,Comparator.comparingInt(i -> t[i]));
-
         StateManager sm = getSolver().getStateManager();
         low = sm.makeStateInt(0);
         up = sm.makeStateInt(t.length - 1);
-
         this.y = y;
         this.z = z;
     }
 
     @Override
     public void post() {
-         throw new NotImplementedException("Element1D");
+        // As y is used for indexing, remove every value below 0 & above numberOfEntries
+        y.removeBelow(0);
+        y.removeAbove(t.length-1);
+        z.removeBelow(t[sortedPerm[0]]);
+        z.removeAbove(t[sortedPerm[t.length-1]]);
+
+
+        y.propagateOnDomainChange(this);
+        z.propagateOnBoundChange(this);
+        propagate();
+
+
+
     }
 
     @Override
     public void propagate() {
-         throw new NotImplementedException("Element1D");
+        //Get the top & bottom pointers
+        int l = low.value(), u = up.value();
+
+        //Get the maximum & minimum value of z
+        int zMin = z.min(), zMax = z.max();
+        while(t[sortedPerm[l]]<zMin|| !y.contains(sortedPerm[l])){
+            y.remove(sortedPerm[l]);
+            l++;
+            if (l > u) {
+                throw new InconsistencyException();
+            }
+        }
+
+        while (t[sortedPerm[u]] > zMax || !y.contains(sortedPerm[u])) {
+            y.remove(sortedPerm[u]);
+            u--;
+            if (l > u) {
+                throw new InconsistencyException();
+            }
+        }
+
+        z.removeAbove(t[sortedPerm[u]]);
+
+
+        z.removeBelow(t[sortedPerm[l]]);
+
+
+        up.setValue(u);
+
+
+        low.setValue(l);
+
+
+
+
+
+
+
     }
 }

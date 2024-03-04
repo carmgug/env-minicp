@@ -22,6 +22,10 @@ import minicp.engine.core.Constraint;
 import minicp.engine.core.IntVar;
 import minicp.util.exception.NotImplementedException;
 
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+
 
 /**
  *
@@ -50,6 +54,42 @@ public class Element1DDomainConsistent extends AbstractConstraint {
 
     @Override
     public void post() {
-         throw new NotImplementedException("Element1D");
+        y.removeBelow(0);
+        y.removeAbove(t.length-1);
+        y.propagateOnDomainChange(this);
+        z.propagateOnDomainChange(this);
+        propagate();
+    }
+
+    public void propagate(){
+        int[] values=new int[y.size()];
+        int size = y.fillArray(values);
+
+        for (int i = 0 ; i < size ; i++) {
+            int valueOfY = values[i];
+            if(!z.contains(t[valueOfY])){
+                y.remove(valueOfY);
+            }
+        }
+
+        int[] z_values=new int[z.size()];
+        int z_size = z.fillArray(z_values);
+        for (int i = 0 ; i < z_size ; i++) {
+            int valueOfZ = z_values[i];
+            int zSup=0;
+            for (int j = 0 ; j < size ; j++) {
+                int valueOfY = values[j];
+                if(t[valueOfY]==valueOfZ){
+                    zSup++;
+                }
+            }
+            if(zSup==0){
+                z.remove(valueOfZ);
+            }
+        }
+
+
+
+
     }
 }

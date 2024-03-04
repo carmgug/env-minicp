@@ -101,6 +101,9 @@ public class Element1DTest {
 
             new Element1D(T, y, z).post();
 
+            System.out.println("OK qui arrivo 1");
+
+
             assertEquals(0, y.min());
             assertEquals(4, y.max());
 
