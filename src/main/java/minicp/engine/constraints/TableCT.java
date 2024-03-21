@@ -86,7 +86,14 @@ public class TableCT extends AbstractConstraint {
                 // TODO 1: fill the support bitset
                 //  supports[i][v] is the set of tuples supported by x[i]=v
                 //  hint: use supports[i][v].set(...)
-                 throw new NotImplementedException("TableCT");
+                if(x[i].contains(table[t][i])) { //v è contenuto in x[i]
+                    //table[t][i] is v
+                    //take the index of the value in the domain of x[i]
+                    int valueOfV=table[t][i];
+                    supports[i][valueOfV-x[i].min()].set(t);
+
+                }
+
             }
         }
 
@@ -110,7 +117,10 @@ public class TableCT extends AbstractConstraint {
      */
     public boolean hasChanged(int i) {
         // TODO 2: use lastDomSize[i] to verify if the domain size of x[i] has changed since last propagation
-         throw new NotImplementedException("TableCT");
+        IntVar variable_that_must_be_checked = x[i];
+        int current_domain_size = variable_that_must_be_checked.size();
+        int last_domain_size = lastDomSize[i].value();
+        return current_domain_size != last_domain_size;
     }
 
     @Override
@@ -120,6 +130,13 @@ public class TableCT extends AbstractConstraint {
                 // TODO 3: update supportedTuples as
                 // supportedTuples &= (supports[i][x[i].min()] | ... | supports[i][x[i].max()] )
                 // for all x[i] modified since last call node in the search tree (see TODO 2 )
+                tmpSupport.clear();
+                int[] domain = new int[x[i].size()];
+                x[i].fillArray(domain);
+                for (int v : domain) {
+                    tmpSupport.or(supports[i][v]);
+                }
+                supportedTuples.and(tmpSupport);
             }
         }
 
@@ -129,10 +146,12 @@ public class TableCT extends AbstractConstraint {
             for (int v = 0; v < nVal; v++) {
                     // TODO 4 the condition for removing the setValue dom[v] from x[i] is to check if
                     //  there is no intersection between supportedTuples and the support[i][dom[v]]
-
+                    // if validTuples & support[i][dom[v]] == 0 then x[i] cannot be equal to dom[v]
+                if(!supportedTuples.intersects(supports[i][dom[v]])){
+                    x[i].remove(dom[v]);
+                }
             }
             lastDomSize[i].setValue(x[i].size()); // store the current domain size to compare during next propagation
         }
-         throw new NotImplementedException("TableCT");
     }
 }

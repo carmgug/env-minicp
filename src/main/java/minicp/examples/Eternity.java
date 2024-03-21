@@ -16,6 +16,7 @@
 package minicp.examples;
 
 import minicp.cp.Factory;
+import minicp.engine.constraints.AllDifferentBinary;
 import minicp.engine.constraints.TableCT;
 import minicp.engine.core.IntVar;
 import minicp.engine.core.Solver;
@@ -84,7 +85,7 @@ public class Eternity extends SatisfactionProblem {
     public void buildModel() {
         // ------------------------
 
-        // TODO 1: create the table where each line corresponds to one possible rotation of a piece
+        // create the table where each line corresponds to one possible rotation of a piece
         // For instance if the line piece[6] = [2,3,5,1]
         // the four lines created in the table are
         // [6,2,3,5,1] // rotation of 0°
@@ -95,6 +96,15 @@ public class Eternity extends SatisfactionProblem {
         // Table with makeIntVarArray pieces and for each their 4 possible rotations
 
         table = new int[4 * n * m][5];
+        for (int i = 0; i < n * m; i++) {
+            for (int j = 0; j < 4; j++) {
+                table[4 * i + j][0] = i;
+                table[4 * i + j][1] = pieces[i][(0+ j) % 4];
+                table[4 * i + j][2] = pieces[i][(1 + j) % 4];
+                table[4 * i + j][3] = pieces[i][(2 + j) % 4];
+                table[4 * i + j][4] = pieces[i][(3 + j) % 4];
+            }
+        }
         
 
         Solver cp = makeSolver();
@@ -143,15 +153,46 @@ public class Eternity extends SatisfactionProblem {
 
         // The constraints of the problem
 
-        // TODO 2: State the constraints of the problem
 
         // Constraint1: all the pieces placed are different
         // hint1: have a look at the AllDifferentBinary constraint
         // hint2: a flatten method is provided to transform a matrix of variables into one array
+        AllDifferentBinary constraint_1 = new AllDifferentBinary(flatten(id));
+        cp.post(constraint_1);
 
         // Constraint2: all the pieces placed are valid ones i.e. one of the given mxn pieces possibly rotated
+        // hint1: have a look at the TableCT constraint
+        // hint2: the table has been created in the first part of the buildModel method
+        // hint3: the id variables are the indexes of the pieces
+        for(int i=0;i<n;i++) {
+            for (int j = 0; j < m; j++) {
+                cp.post(new TableCT(new IntVar[]{id[i][j], u[i][j], r[i][j], d[i][j], l[i][j]}, table));
+            }
+        }
 
         // Constraint3: place "0" one all external side of the border (gray color)
+        /*
+            //SHOW A MATRIX
+                C C C C C
+           R:0  0 1 2 3 4
+           R:2  0 1 2 3 4
+           R:3  0 1 2 3 4
+
+         */
+
+        //top and bottom
+
+        for (int j = 0; j < m; j++) {
+            cp.post(equal(u[0][j], 0)); //top
+            cp.post(equal(d[n-1][j], 0)); //bottom
+        }
+
+        for(int i=0;i<n;i++){
+            cp.post(equal(l[i][0], 0)); //left
+            cp.post(equal(r[i][m-1], 0)); //right
+        }
+
+
 
         
 
@@ -159,11 +200,8 @@ public class Eternity extends SatisfactionProblem {
         // The search using the and combinator
 
         dfs = makeDfs(cp,
-                /* TODO 3: continue, are you branching on all the variables ? */
-                 and(firstFail(flatten((id))), firstFail(flatten(u)))
+                 and(firstFail(flatten((id))), firstFail(flatten(u)), firstFail(flatten(r)), firstFail(flatten(d)), firstFail(flatten(l)))
         );
-        // TODO add the constraints and remove the NotImplementedException
-         throw new NotImplementedException("Eternity");
     }
 
     /**
