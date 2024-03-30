@@ -35,11 +35,20 @@ import static minicp.cp.Factory.plus;
  */
 public class NQueens {
     public static void main(String[] args) {
-        int n = 4;
+        int n = 15;
         Solver cp = Factory.makeSolver(false);
         IntVar[] q = Factory.makeIntVarArray(cp, n, n);
 
 
+        /*
+        * Assigment 5:
+        * Modify NQueens.java by using AllDifferentFWC.java
+        * and experiment with the 15-queens instance:
+        * how much speed-up do you observe for finding all the solutions? A lot.
+         */
+        cp.post(Factory.allDifferent(q));
+
+        /*
         for (int i = 0; i < n; i++)
             for (int j = i + 1; j < n; j++) {
                 cp.post(Factory.notEqual(q[i], q[j]));
@@ -51,6 +60,10 @@ public class NQueens {
                 // cp.post(notEqual(minus(q[i], j - i), q[j]));
 
             }
+
+         */
+
+
 
 
 

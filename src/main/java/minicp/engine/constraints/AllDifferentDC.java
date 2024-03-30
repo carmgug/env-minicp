@@ -111,10 +111,48 @@ public class AllDifferentDC extends AbstractConstraint {
             in[j].clear();
             out[j].clear();
         }
-        // TODO continue the implementation for representing the residual graph
-         throw new NotImplementedException("AllDifferentDC");
-    }
+        for(int i=0;i<x.length;i++){
+            int matched_value=match[i];
+            int label= matched_value-minVal;
+            matched[label]=true;
 
+            int[] domain = new int[x[i].size()];
+            x[i].fillArray(domain);
+            for (int v:domain) {
+                int node = i;
+                int value_label = v+nVar-minVal;
+
+                if(matched_value==v){
+
+                    in[node].add(value_label);
+                    out[value_label].add(node);
+
+                }else{
+                    in[value_label].add(node);
+                    out[node].add(value_label);
+                }
+            }
+        }
+
+        //Arc from node to sink and from sink to node
+        for(int v=minVal;v<=maxVal;v++){
+            int value_node=v-minVal;
+            if(matched[value_node]){
+                int label_value_node=value_node+nVar;
+                in[label_value_node].add(sink);
+                out[sink].add(label_value_node);
+
+
+            }else{
+                //is a value node that is not matched
+                //So we have an arc from value node to sink
+                int label_value_node=v-minVal+nVar;
+                in[sink].add(label_value_node);
+                out[label_value_node].add(sink);
+
+            }
+        }
+    }
 
     @Override
     public void propagate() {
@@ -123,6 +161,22 @@ public class AllDifferentDC extends AbstractConstraint {
         //       use updateRange() to update the range of values
         //       use updateGraph() to update the residual graph
         //       use  GraphUtil.stronglyConnectedComponents to compute SCC's
-         throw new NotImplementedException("AllDifferentDC");
+        matched = new boolean[nVal+nVar+1];
+
+        maximumMatching.compute(match);
+        updateRange();
+        updateGraph();
+        int[] scc = GraphUtil.stronglyConnectedComponents(g);
+        for (int i=0;i<nVar;i++) {
+            int matched_value=match[i];
+            for(int v=x[i].min();v<=x[i].max();v++){
+                int label_value_node=v-minVal+nVar;
+                if(v!=matched_value && scc[i]!=scc[label_value_node]){
+                    x[i].remove(v);
+                }
+            }
+        }
+
+
     }
 }
