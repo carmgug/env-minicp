@@ -116,7 +116,7 @@ public class TSP extends OptimizationProblem {
         //  But setting 95% will not help much as there are not a lot of things decide: almost everything is fixed!
         //  Try to find the sweet spot for this problem
          int failureLimit = 150;
-         int percentage = 75;
+         int percentage = 80;
         Random rand = new java.util.Random(42);
         Solver cp = totalDist.getSolver();
 
