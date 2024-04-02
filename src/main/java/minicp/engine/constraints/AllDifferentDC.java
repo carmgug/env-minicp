@@ -139,13 +139,17 @@ public class AllDifferentDC extends AbstractConstraint {
             int value_node=v-minVal;
             if(matched[value_node]){
                 int label_value_node=value_node+nVar;
+                /*
+                * We have an arc from sink to label_value_node
+                 */
                 in[label_value_node].add(sink);
                 out[sink].add(label_value_node);
 
 
             }else{
-                //is a value node that is not matched
-                //So we have an arc from value node to sink
+                /*
+                 * We have an arc from label_value_node to sink
+                 */
                 int label_value_node=v-minVal+nVar;
                 in[sink].add(label_value_node);
                 out[label_value_node].add(sink);
@@ -161,7 +165,7 @@ public class AllDifferentDC extends AbstractConstraint {
         //       use updateRange() to update the range of values
         //       use updateGraph() to update the residual graph
         //       use  GraphUtil.stronglyConnectedComponents to compute SCC's
-        matched = new boolean[nVal+nVar+1];
+        matched = new boolean[nNodes];
 
         maximumMatching.compute(match);
         updateRange();

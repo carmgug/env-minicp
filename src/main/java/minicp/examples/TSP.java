@@ -64,20 +64,30 @@ public class TSP extends OptimizationProblem {
 
         // simple first-fail strategy
         dfs = makeDfs(cp, () -> {
-            IntVar xs = selectMin(succ,
-                  xi -> xi.size() > 1,
-                  xi -> xi.size());
-            if (xs == null)
+            Integer[] indexs=IntStream.range(0,n).boxed().toArray(Integer[]::new);
+            Integer idx = selectMin(indexs,
+                     i -> succ[i].size() > 1,
+                     i -> succ[i].size());
+            if (idx == null)
                 return EMPTY;
             else {
-                // TODO modify the value selector to get a better solution
-                int v = xs.min();
-                return branch(() -> xs.getSolver().post(equal(xs, v)),
-                        () -> xs.getSolver().post(notEqual(xs, v)));
+                IntVar xs= succ[idx];
+                int[] domain=new int[xs.size()];
+                xs.fillArray(domain);
+                int min=Integer.MAX_VALUE;
+                int curr_succ=-1;
+                //Search the closest city
+                for (int v : domain) {
+                    if (min>distanceMatrix[idx][v]){
+                        min=distanceMatrix[idx][v];
+                        curr_succ=v;
+                    }
+                }
+                int final_successor= curr_succ;
+                return branch(() -> xs.getSolver().post(equal(xs, final_successor)),
+                        () -> xs.getSolver().post(notEqual(xs, final_successor)));
             }
         });
-        // TODO implement the search and remove the NotImplementedException
-         throw new NotImplementedException("TSP");
     }
 
     /**
@@ -105,8 +115,8 @@ public class TSP extends OptimizationProblem {
         //  For instance, about the percentage, setting 5% will do nothing: you almost start from scratch
         //  But setting 95% will not help much as there are not a lot of things decide: almost everything is fixed!
         //  Try to find the sweet spot for this problem
-         int failureLimit = 1000;
-         int percentage = 5;
+         int failureLimit = 150;
+         int percentage = 75;
         Random rand = new java.util.Random(42);
         Solver cp = totalDist.getSolver();
 

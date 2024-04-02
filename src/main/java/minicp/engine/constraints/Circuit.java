@@ -19,6 +19,7 @@ package minicp.engine.constraints;
 import minicp.engine.core.AbstractConstraint;
 import minicp.engine.core.IntVar;
 import minicp.state.StateInt;
+import minicp.util.exception.InconsistencyException;
 import minicp.util.exception.NotImplementedException;
 import static minicp.cp.Factory.allDifferent;
 
@@ -51,19 +52,31 @@ public class Circuit extends AbstractConstraint {
             lengthToDest[i] = getSolver().getStateManager().makeStateInt(0);
         }
     }
-
-
     @Override
     public void post() {
         getSolver().post(allDifferent(x));
-        // TODO
-        // Hint: use x[i].whenFixed(...) to call the fix
-         throw new NotImplementedException("Circuit");
+        for (int i = 0; i < x.length; i++) {
+            x[i].remove(i); // remove self loop;
+            x[i].removeBelow(0);
+            x[i].removeAbove(x.length-1);
+            if(x[i].isFixed()) {
+                fix(i);
+            }
+            else {
+                final int idx = i;
+                x[i].whenFixed(() -> fix(idx));
+            }
+        }
     }
-
-
     protected void fix(int i) {
-        // TODO
-         throw new NotImplementedException("Circuit");
+        int j = x[i].min(); // the city visited after city i
+        dest[orig[i].value()].setValue(dest[j].value());
+        orig[dest[j].value()].setValue(orig[i].value());
+
+        int new_length= lengthToDest[orig[i].value()].value() + lengthToDest[j].value()+1;
+        lengthToDest[orig[i].value()].setValue(new_length);
+        if(lengthToDest[orig[i].value()].value() < (x.length-1)){
+            x[dest[j].value()].remove(orig[i].value());
+        }
     }
 }

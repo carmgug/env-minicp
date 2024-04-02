@@ -34,19 +34,31 @@ public class VRP extends OptimizationProblem{
 
     @Override
     public void buildModel() {
-        // TODO 1: there are now nVehicle in the problem. The depot is the city at index 0
-        //  and every other city must be visited exactly once by exactly one of the vehicles
-        //  put in n the correct number of nodes within the problem
-         n = initalNodes;
+
+        int duplicate_depot= nVehicle-1;
+        n = initalNodes+duplicate_depot;
+
 
         distanceMatrix = new int[n][n];
         for (int i = 0 ; i < distanceMatrix.length ; ++i) {
             for (int j = 0 ; j < distanceMatrix.length; ++j) {
-                // TODO 2: extend the distance matrix to put the correct distances
-                //  from initialDistanceMatrix
-                //  the nodes 0..nVehicle correspond to the depot nodes
-                //  the other nodes are the city that must be visited
-                 distanceMatrix[i][j] = initialDistanceMatrix[i][j];
+
+                if(i<nVehicle && j<nVehicle){
+                    //i and j are depots
+                    distanceMatrix[i][j] = 0;
+                }
+                else if(i<nVehicle){
+                    //only i is a depot
+                    distanceMatrix[i][j] = initialDistanceMatrix[0][j-duplicate_depot];
+                }
+                else if(j<nVehicle){
+                    //only j is a depot
+                    distanceMatrix[i][j] = initialDistanceMatrix[i-duplicate_depot][0];
+                }
+                else{
+                    //i and j are not depots
+                    distanceMatrix[i][j] = initialDistanceMatrix[i-duplicate_depot][j-duplicate_depot];
+                }
             }
         }
 
