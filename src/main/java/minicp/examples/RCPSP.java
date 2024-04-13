@@ -16,6 +16,8 @@
 package minicp.examples;
 
 import minicp.engine.constraints.Cumulative;
+import minicp.engine.constraints.LessOrEqual;
+import minicp.engine.constraints.Maximum;
 import minicp.engine.core.IntVar;
 import minicp.engine.core.Solver;
 import minicp.search.DFSearch;
@@ -106,19 +108,24 @@ public class RCPSP extends OptimizationProblem {
         // capa[r] is the capacity of resource r
         // consumption[r] is the consumption for each activity on the resource [r]
         // duration is the duration of each activity
-
+        for (int r=0; r<nResources; r++){
+            cp.post(new Cumulative(start, duration, consumption[r], capa[r]));
+        }
         // TODO 2: add the precedence constraints
         // successors[i] is the sucessors of activity i
-
+        for (int i=0; i<successors.length; i++) {
+            for (int j=0; j<successors[i].length; j++) {
+                cp.post(new LessOrEqual(end[i],start[successors[i][j]]));
+            }
+        }
         // TODO 3: minimize the makespan
-         IntVar makespan = null;
-         objective = null;
+         IntVar makespan = makeIntVar(cp,horizon);
+         objective = cp.minimize(makespan);
+         cp.post(new Maximum(end,makespan));
 
         // TODO 4: implement the search
-
-         dfs = null;
+        dfs = makeDfs(cp,firstFail(end));
         // TODO add the constraints, the search and remove the NotImplementedException
-         throw new NotImplementedException("RCPSP");
     }
 
     @Override

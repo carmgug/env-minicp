@@ -67,13 +67,20 @@ public class CumulativeDecomposition extends AbstractConstraint {
             BoolVar[] overlaps = new BoolVar[start.length];
             for (int i = 0; i < start.length; i++) {
                 overlaps[i] = makeBoolVar(getSolver());
-                // TODO
                 // post the constraints to enforce
                 // that overlaps[i] is true iff start[i] <= t && t < start[i] + duration[i]
-                // hint: use IsLessOrEqual, introduce BoolVar, use views minus, plus, etc.
-                //       logical constraints (such as logical and can be modeled with sum)
 
-                 throw new NotImplementedException("CumulativeDecomp");
+                // start[i] <= t
+                BoolVar startB = isLessOrEqual(start[i], t);
+                //t < start[i] + duration[i]
+                BoolVar endB = isLarger(start[i], t-duration[i]);
+                //overlaps[i] = startB && endB
+                IntVar condition= sum(startB,endB);
+                //startB and endB true then the sum is equal to two so
+                overlaps[i]=isEqual(condition,2);
+
+
+
             }
 
             IntVar[] overlapHeights = Factory.makeIntVarArray(start.length, i -> mul(overlaps[i], demand[i]));
