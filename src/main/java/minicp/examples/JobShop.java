@@ -83,7 +83,12 @@ public class JobShop extends OptimizationProblem {
 
             // TODO 1: for each pair of activities a1, a2 on machine m post a DisjunctiveBinary
             //       and add the constraint to the disjunctiveBinaries collection
-
+            for (int i = 0; i < start_m.length; i++) {
+                for (int j = i + 1; j < start_m.length; j++) {
+                    DisjunctiveBinary disjunctiveBinary = new DisjunctiveBinary(start_m[i], dur_m[i], start_m[j], dur_m[j]);
+                    cp.post(disjunctiveBinary);
+                }
+            }
             // Global constraint (the ones using theta-trees)
             // By default, until you have implemented the advanced
             // filtering, it only posts a cumulative with capacity 1
@@ -111,6 +116,7 @@ public class JobShop extends OptimizationProblem {
         Supplier<Procedure[]> fixMakespan = () -> makespan.isFixed() ? EMPTY : new Procedure[] {() -> cp.post(equal(makespan,makespan.min()))};
         //  HINT: use a and combinator makeDfs(cp, and(branchPrecedences, fixMakespan));
         //        where branchPrecedences is in charge of fixing the precedences
+
 
     }
 

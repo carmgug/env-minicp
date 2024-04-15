@@ -25,6 +25,7 @@ import minicp.util.exception.NotImplementedException;
 
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.Iterator;
 
 import static minicp.cp.Factory.*;
 
@@ -37,6 +38,8 @@ public class Disjunctive extends AbstractConstraint {
     private final IntVar[] start;
     private final int[] duration;
     private final IntVar[] end;
+
+    private final boolean postMirror;
 
     
     private final Integer[] permLct;
@@ -65,6 +68,7 @@ public class Disjunctive extends AbstractConstraint {
         this.start = start;
         this.duration = duration;
         this.end = Factory.makeIntVarArray(start.length, i -> plus(start[i], duration[i]));
+        this.postMirror = postMirror;
 
         startMin = new int[start.length];
         endMax = new int[start.length];
@@ -83,17 +87,33 @@ public class Disjunctive extends AbstractConstraint {
     @Override
     public void post() {
 
+        /*
         int[] demands = new int[start.length];
         for (int i = 0; i < start.length; i++) {
             demands[i] = 1;
         }
-        getSolver().post(new Cumulative(start, duration, demands, 1), false);
+
+        //getSolver().post(new Cumulative(start, duration, demands, 1), false);
+
+        */
 
 
         // TODO 1: replace by posting binary decomposition (DisjunctiveBinary) using IsLessOrEqualVar
-        // TODO 2: add the mirror filtering as done in the Cumulative Constraint
-         throw new NotImplementedException("Disjunctive");
+        for (int i = 0; i < start.length; i++) {
+            for (int j = i+1; j < start.length; j++) {
+                getSolver().post(new DisjunctiveBinary(start[i], duration[i], start[j], duration[j]),false);
+            }
+        }
 
+        // TODO 2: add the mirror filtering as done in the Cumulative Constraint
+        if (postMirror) {
+            IntVar[] startMirror = Factory.makeIntVarArray(start.length, i -> minus(end[i]));
+            getSolver().post(new Disjunctive(startMirror, duration, false), false);
+        }
+
+
+
+        propagate();
     }
 
     @Override
@@ -101,6 +121,7 @@ public class Disjunctive extends AbstractConstraint {
         // HINT: for the TODO 3-6 you'll need the ThetaTree data-structure
 
         // TODO 3: read and understand the OverLoadCheck algorithm implementation
+
 
         // TODO 4: add the Detectable Precedences algorithm
 
@@ -140,17 +161,125 @@ public class Disjunctive extends AbstractConstraint {
         }
     }
 
+    private Integer[] getIndexOfActivities(){
+        Integer[] idxs= new Integer[start.length];
+        for (int i = 0; i < start.length; i++) {
+            idxs[i] = i;
+        }
+        return idxs;
+    }
+
+
     /**
      * @return true if one domain was changed by the detectable precedence algo
      */
     public boolean detectablePrecedence() {
-         throw new NotImplementedException("Disjunctive");
+        update();
+        //Index of the activities sorted by lct-duration
+        Integer[] permLst= getIndexOfActivities();
+        Arrays.sort(permLst, Comparator.comparingInt(i -> end[i].max() - duration[i]));
+
+        //Index of the activities sorted by earliest start time+duration
+        Integer[] permEct = getIndexOfActivities();
+        Arrays.sort(permEct, Comparator.comparingInt(i -> end[i].min()));
+        boolean change = false;
+
+
+        //implements detectablePrecedence
+        Iterator<Integer> it=Arrays.asList(permLst).iterator();
+        int activity_j=it.next();
+        thetaTree.reset();
+        int[] estPrime = new int[start.length];
+
+        for(int activity_i:permEct){
+            int est_i=end[activity_i].min()-duration[activity_i];
+            int p_i=duration[activity_i];
+            int lct_j=end[activity_j].max();
+            int duration_j=duration[activity_j];
+
+            while(est_i+p_i>lct_j-duration_j){
+                thetaTree.insert(rankEst[activity_j], end[activity_j].min(), duration[activity_j]);
+                if(it.hasNext()) activity_j=it.next();
+                else break;
+                lct_j=end[activity_j].max();
+                duration_j=duration[activity_j];
+            }
+            thetaTree.remove(rankEst[activity_i]);
+            estPrime[activity_i]=Math.max(est_i,thetaTree.getECT());
+        }
+        for(int i=0;i<start.length;i++){
+            //early start time of activity i is equal to estPrime[i]
+            int activity_i=permEct[i];
+            int size=end[activity_i].size();
+            end[activity_i].removeBelow(estPrime[activity_i]+duration[activity_i]);
+            if(size!=end[activity_i].size()){
+                change=true;
+            }
+        }
+        return change;
     }
 
     /**
      * @return true if one domain was changed by the not-last algo
      */
     public boolean notLast() {
-         throw new NotImplementedException("Disjunctive");
+        //update();
+
+        Integer[] permLst= getIndexOfActivities();
+        //Activities sorted by Last starting Time
+        Arrays.sort(permLst, Comparator.comparingInt(i -> end[i].max()-duration[i]));
+        //Activities sorted by Last completion time
+        Integer[] permLct= getIndexOfActivities();
+        Arrays.sort(permLct, Comparator.comparingInt(i -> end[i].max()));
+
+        boolean change = false;
+
+        Iterator<Integer> ite=Arrays.asList(permLst).iterator();
+        int activity_k=ite.next();
+        int activity_j=-1;
+        thetaTree.reset();
+
+        Integer[] lctPrime = new Integer[start.length];
+        for (int i = 0;i<start.length;i++) {
+            int activity_i = permLct[i];
+            lctPrime[activity_i] = end[activity_i].max(); //end[activity_i].max();
+        }
+
+        for(Integer activity_i:permLct){
+            int lct_i=end[activity_i].max();
+            int lct_k=end[activity_k].max();
+            int duration_k=duration[activity_k];
+            int duration_i=duration[activity_i];
+
+            while(lct_i>lct_k-duration_k){
+                thetaTree.insert(activity_k,lct_k, duration_k);
+                activity_j=activity_k;
+                if(ite.hasNext()) {
+                    activity_k = ite.next();
+                }
+                else { break;}
+                lct_k=end[activity_k].max();
+                duration_k=duration[activity_k];
+            }
+            thetaTree.remove(activity_i);
+            int ect_theta_i=thetaTree.getECT();
+
+            if(ect_theta_i>lct_i-duration_i){
+                int lct_j=end[activity_j].max();
+                int duration_j=duration[activity_j];
+                lctPrime[activity_i]=Math.min(lct_i,lct_j-duration_j);
+            }
+
+        }
+
+        for(int i=0;i<start.length;i++){
+            int activity_i=permLct[i];
+            int size=end[activity_i].size();
+            end[activity_i].removeAbove(lctPrime[activity_i]);
+            if(size!=end[activity_i].size()){
+                change=true;
+            }
+        }
+        return change;
     }
 }

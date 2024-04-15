@@ -55,8 +55,12 @@ public class DisjunctiveBinary extends AbstractConstraint implements Comparable<
     @Override
     public void post() {
         // TODO : post binary decomposition using IsLessOrEqualVar (reified constraints)
-        // one of the two activities must precede the other one
-         throw new NotImplementedException("DisjunctiveBinary");
+        // b <=> start1 + duration1 <= start2 or start2 + duration2 <= start1
+        // b <=> end1 <= start2 or end2 <= start1
+        getSolver().post(new IsLessOrEqualVar(before, end1, start2));
+        getSolver().post(new IsLessOrEqualVar(after, end2, start1));
+        getSolver().post(new NotEqual(before, after));
+
     }
 
     /**
