@@ -17,6 +17,7 @@ package minicp.examples;
 
 import minicp.engine.constraints.Disjunctive;
 import minicp.engine.constraints.DisjunctiveBinary;
+import minicp.engine.core.BoolVar;
 import minicp.engine.core.IntVar;
 import minicp.engine.core.Solver;
 import minicp.search.SearchStatistics;
@@ -117,28 +118,31 @@ public class JobShop extends OptimizationProblem {
         Supplier<Procedure[]> fixMakespan = () -> makespan.isFixed() ? EMPTY : new Procedure[] {() -> cp.post(equal(makespan,makespan.min()))};
         //  HINT: use a and combinator makeDfs(cp, and(branchPrecedences, fixMakespan));
         //        where branchPrecedences is in charge of fixing the precedences
+
         Supplier<Procedure[]> branchPrecedences = () -> {
             //Select first the machine m that has the smallest
             // sum of size of the domains of the activities to be executed on it
-            int selected_machine=selectMachine();
-            if(selected_machine==-1) return EMPTY;
-            int[] selected_activities=selectActivities_ij(selected_machine);
-            if(selected_activities[0]==-1 && selected_activities[1]==-1) return EMPTY;
-            int activity_i=selected_activities[0];
-            int activity_j=selected_activities[1];
+            //int selected_machine=selectMachine();
+            //if(selected_machine==-1) return EMPTY;
+            int selected_activities=selectActivities_ij(disjunctiveBinaries);
+            if(selected_activities==-1) return EMPTY;
             //branch on bij=true i start before j
             //branch on bij=false j start before i
-            DisjunctiveBinary constraint_ij=disjunctiveBinaries.get(activity_i+activity_j);
+            DisjunctiveBinary constraint_ij=disjunctiveBinaries.get(selected_activities);
 
             int slackJifIStartBeforeJ=constraint_ij.slackIfBefore();
             int slackIifJStartBeforeI=constraint_ij.slackIfAfter();
+            BoolVar bij=constraint_ij.before();
             if(slackJifIStartBeforeJ>slackIifJStartBeforeI){
-                return branch(() -> constraint_ij.before().fix(true),
-                        () -> constraint_ij.before().fix(false));
+                //branch on bij=true i start before j and then on big false
+                return branch(() -> bij.getSolver().post(equal(bij,1)),
+                        () -> bij.getSolver().post(notEqual(bij,1)));
             }
+
             else{
-                return branch(() -> constraint_ij.before().fix(false),
-                        () -> constraint_ij.before().fix(true));
+                //branch on bij=false j start before i and then on bij true
+                return branch(() -> bij.getSolver().post(equal(bij,0)),
+                        () -> bij.getSolver().post(notEqual(bij,0)));
             }
         };
         dfs=makeDfs(cp,and(branchPrecedences,fixMakespan));
@@ -147,19 +151,20 @@ public class JobShop extends OptimizationProblem {
     }
     //select the pair of activities (i,j) that will be executed on machine m
     //with the minimium start(i).size()*start(j).size()
-    private int[] selectActivities_ij(int machine){
-        int[] selected_ij={-1,-1};
+    private int selectActivities_ij(ArrayList<DisjunctiveBinary> disjunctiveBinaries){
+        int selected_ij=-1;
         int minDotSize=Integer.MAX_VALUE;
-        for(int i=0;i<instance.nJobs;i++){
-            if(start[i][machine].isFixed()) continue;
-            for(int j=i+1;j<instance.nJobs;j++){
-                if(start[j][machine].isFixed()) continue;
-                if(start[i][machine].size()*start[j][machine].size()<minDotSize){
-                    minDotSize=start[i][machine].size()*start[j][machine].size();
-                    selected_ij[0]=i;
-                    selected_ij[1]=j;
-                }
+
+        int ij=0;
+        for(DisjunctiveBinary disjunctiveBinary: disjunctiveBinaries){
+            if(disjunctiveBinary.before().isFixed()) {ij++;continue;}
+            int dotSize=disjunctiveBinary.getSizeStart1()*disjunctiveBinary.getSizeStart2();
+            if(dotSize<minDotSize){
+                minDotSize=dotSize;
+                selected_ij=ij;
+
             }
+            ij++;
         }
         return selected_ij;
     }
@@ -180,7 +185,7 @@ public class JobShop extends OptimizationProblem {
                 //The machine not contain at least one non-fixed start(i)
                 continue;
             }
-            else if (size < minSize) {
+            if (size < minSize) {
                 minSize = size;
                 m = curr_machine;
             }

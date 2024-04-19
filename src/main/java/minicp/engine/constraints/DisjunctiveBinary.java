@@ -124,4 +124,11 @@ public class DisjunctiveBinary extends AbstractConstraint implements Comparable<
     public int compareTo(DisjunctiveBinary o) {
         return slack() - o.slack();
     }
+
+    public int getSizeStart1(){
+        return this.start1.size();
+    }
+    public int getSizeStart2(){
+        return this.start2.size();
+    }
 }
