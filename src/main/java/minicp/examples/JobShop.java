@@ -87,12 +87,13 @@ public class JobShop extends OptimizationProblem {
                 for (int j = i + 1; j < start_m.length; j++) {
                     DisjunctiveBinary disjunctiveBinary = new DisjunctiveBinary(start_m[i], dur_m[i], start_m[j], dur_m[j]);
                     cp.post(disjunctiveBinary);
+                    disjunctiveBinaries.add(disjunctiveBinary);
                 }
             }
             // Global constraint (the ones using theta-trees)
             // By default, until you have implemented the advanced
             // filtering, it only posts a cumulative with capacity 1
-            // cp.post(new Disjunctive(start_m, dur_m));
+            cp.post(new Disjunctive(start_m, dur_m));
         }
 
 
@@ -108,7 +109,7 @@ public class JobShop extends OptimizationProblem {
         // Search to fix the start time of all activities
 
         Supplier<Procedure[]> branchStart = firstFail(flatten(start));
-        dfs = makeDfs(cp, branchStart);
+        //dfs = makeDfs(cp, branchStart);
 
 
         // TODO 2: Replace the search by fixing the precedence relation of
@@ -116,8 +117,75 @@ public class JobShop extends OptimizationProblem {
         Supplier<Procedure[]> fixMakespan = () -> makespan.isFixed() ? EMPTY : new Procedure[] {() -> cp.post(equal(makespan,makespan.min()))};
         //  HINT: use a and combinator makeDfs(cp, and(branchPrecedences, fixMakespan));
         //        where branchPrecedences is in charge of fixing the precedences
+        Supplier<Procedure[]> branchPrecedences = () -> {
+            //Select first the machine m that has the smallest
+            // sum of size of the domains of the activities to be executed on it
+            int selected_machine=selectMachine();
+            if(selected_machine==-1) return EMPTY;
+            int[] selected_activities=selectActivities_ij(selected_machine);
+            if(selected_activities[0]==-1 && selected_activities[1]==-1) return EMPTY;
+            int activity_i=selected_activities[0];
+            int activity_j=selected_activities[1];
+            //branch on bij=true i start before j
+            //branch on bij=false j start before i
+            DisjunctiveBinary constraint_ij=disjunctiveBinaries.get(activity_i+activity_j);
+
+            int slackJifIStartBeforeJ=constraint_ij.slackIfBefore();
+            int slackIifJStartBeforeI=constraint_ij.slackIfAfter();
+            if(slackJifIStartBeforeJ>slackIifJStartBeforeI){
+                return branch(() -> constraint_ij.before().fix(true),
+                        () -> constraint_ij.before().fix(false));
+            }
+            else{
+                return branch(() -> constraint_ij.before().fix(false),
+                        () -> constraint_ij.before().fix(true));
+            }
+        };
+        dfs=makeDfs(cp,and(branchPrecedences,fixMakespan));
 
 
+    }
+    //select the pair of activities (i,j) that will be executed on machine m
+    //with the minimium start(i).size()*start(j).size()
+    private int[] selectActivities_ij(int machine){
+        int[] selected_ij={-1,-1};
+        int minDotSize=Integer.MAX_VALUE;
+        for(int i=0;i<instance.nJobs;i++){
+            if(start[i][machine].isFixed()) continue;
+            for(int j=i+1;j<instance.nJobs;j++){
+                if(start[j][machine].isFixed()) continue;
+                if(start[i][machine].size()*start[j][machine].size()<minDotSize){
+                    minDotSize=start[i][machine].size()*start[j][machine].size();
+                    selected_ij[0]=i;
+                    selected_ij[1]=j;
+                }
+            }
+        }
+        return selected_ij;
+    }
+
+    private int selectMachine() {
+        int m = -1;
+        int minSize = Integer.MAX_VALUE;
+        for (int curr_machine = 0; curr_machine < instance.nMachines; curr_machine++) {
+            int size = 0;
+            //Iterate on the set of activities executed on machine j
+            //m that contains at least one non-fixed start(i)
+            for (int i = 0; i < instance.nJobs; i++) {
+                if(start[i][curr_machine].isFixed()) continue;
+                //start[i][j] is the start time domain of job i on machine j
+                size += start[i][curr_machine].size();
+            }
+            if(size==0){
+                //The machine not contain at least one non-fixed start(i)
+                continue;
+            }
+            else if (size < minSize) {
+                minSize = size;
+                m = curr_machine;
+            }
+        }
+        return m;
     }
 
     public static void main(String[] args) {

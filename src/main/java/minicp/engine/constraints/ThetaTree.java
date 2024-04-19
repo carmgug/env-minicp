@@ -129,6 +129,8 @@ public class ThetaTree {
         return nodes[pos].getECT();
     }
 
+
+
     /**
      * The earliest completion time of the activities present in the theta-tree
      * @return the earliest completion time of the activities present in the theta-tree
