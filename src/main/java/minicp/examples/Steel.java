@@ -16,6 +16,8 @@
 package minicp.examples;
 
 import minicp.cp.Factory;
+import minicp.engine.constraints.Element1D;
+import minicp.engine.constraints.Element1DVar;
 import minicp.engine.constraints.IsOr;
 import minicp.engine.constraints.LessOrEqual;
 import minicp.engine.core.BoolVar;
@@ -124,11 +126,19 @@ public class Steel extends OptimizationProblem {
                     for (int i = 0; i < nOrder; i++) {
                         if (c[i] == col) inSlabWithColor.add(inSlab[j][i]);
                     }
+                    BoolVar[] inSlabWithColorArray = new BoolVar[inSlabWithColor.size()];
+                    int idx=0;
+                    for(BoolVar x: inSlabWithColor) {
+                        inSlabWithColorArray[idx] = x;
+                        idx++;
+                    }
 
                     // TODO 2: model that presence[col] is true iff at least one order with color col is placed in slab j
+                    cp.post(new IsOr((BoolVar) presence[col], inSlabWithColorArray));
                     
                 }
                 // TODO 3: restrict the number of colors present in slab j to be <= 2
+                cp.post(lessOrEqual(sum(presence),2));
                 
             }
 
@@ -142,10 +152,25 @@ public class Steel extends OptimizationProblem {
             }
 
             // TODO 4: add the redundant constraint that the sum of the loads is equal to the sum of elements
-            
+            cp.post(sum(l,IntStream.of(w).sum()));
+
 
             // TODO 1: model the objective function using element constraint + a sum constraint
-            totLoss = null;
+            //Model the objective function denoting the total loss to be minimized.
+            // You should use Element constraints to denote the loss in each slab.
+            // The precomputed array loss gives for each load (index) the loss that would be incurred.
+            // It is precomputed as the difference between the smallest capacity that can accommodate
+            // the load and the load value. A Sum constraint constraint can then be used to denote the total loss.
+
+            //l_i is the load of slab i
+            //loss[l_i] is the loss of slab i
+            //totLoss is the total loss
+
+            IntVar[] minLoss = makeIntVarArray(cp, nSlab, maxCapa + 1);
+            for (int j = 0; j < nSlab; j++) {
+                cp.post(new Element1D(loss,l[j],minLoss[j]));
+            }
+            totLoss = sum(minLoss);
             
             if (totLoss == null)
                 throw new NotImplementedException("Steel");
@@ -153,6 +178,7 @@ public class Steel extends OptimizationProblem {
             objective = cp.minimize(totLoss);
 
             // TODO 5 add static symmetry breaking constraint
+
 
             // TODO 6 implement a dynamic symmetry breaking during search
             dfs = makeDfs(cp,firstFail(x));
