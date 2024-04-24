@@ -66,6 +66,29 @@ public class IsOr extends AbstractConstraint { // b <=> x1 or x2 or ... xn
     @Override
     public void propagate() {
         // TODO Implement the constraint as efficiently as possible and make sure you pass all the tests
-         throw new NotImplementedException();
+        if (b.isTrue()) {
+            getSolver().post(or);
+            setActive(false);
+        }
+        else if (b.isFalse())
+            for (BoolVar xi : x)
+                xi.fix(false);
+        else{
+            //x_i become true: set b to true and dectivate (we must listen to all variables
+            boolean allFalse = true;
+            for (int i = 0; i < nFreeVars.value(); i++) {
+                int j = freeVarIndex[i];
+                if (x[j].isTrue()) {
+                    b.fix(true);
+                    setActive(false);
+                    allFalse = false;
+                }
+                if(!x[j].isFixed()){
+                    allFalse = false;
+                }
+            }
+            if(allFalse)
+                b.fix(false);
+        }
     }
 }

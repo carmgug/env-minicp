@@ -19,7 +19,10 @@ import minicp.engine.core.AbstractConstraint;
 import minicp.engine.core.BoolVar;
 import minicp.state.StateInt;
 
+import static minicp.cp.Factory.equal;
 import static minicp.util.exception.InconsistencyException.INCONSISTENCY;
+
+import minicp.util.exception.InconsistencyException;
 import minicp.util.exception.NotImplementedException;
 
 /**
@@ -57,6 +60,18 @@ public class Or extends AbstractConstraint { // x1 or x2 or ... xn
     public void propagate() {
         // update watched literals
         // TODO: implement the filtering using watched literal technique and make sure you pass all the tests
-         throw new NotImplementedException("Or");
+        if (x[wL.value()].isTrue() || x[wR.value()].isTrue())
+            setActive(false);
+        else {
+            while (wL.value() < wR.value() && x[wL.value()].isFalse()) wL.increment();
+
+            while (wR.value() > wL.value() && x[wR.value()].isFalse()) wR.decrement();
+
+            if (wL.value().equals(wR.value())) {
+                x[wL.value()].fix(1);
+            }
+            x[wL.value()].propagateOnFix(this);
+            x[wR.value()].propagateOnFix(this);
+        }
     }
 }
