@@ -20,6 +20,7 @@ import minicp.cp.BranchingScheme;
 import minicp.util.Procedure;
 import minicp.util.exception.NotImplementedException;
 
+import java.util.Arrays;
 import java.util.function.Supplier;
 
 /**
@@ -58,6 +59,20 @@ public class LimitedDiscrepancyBranching implements Supplier<Procedure[]> {
         // sets the curD depending on its position
         // curD = d + 0 for alts[0], ..., +i for alts[i]
 
-         throw new NotImplementedException("LimitedDiscrepancy");
+        Procedure[] branches = bs.get();
+        Procedure[] filteredBranches = new Procedure[branches.length];
+        int d = curD;
+        for (int i = 0; i < branches.length; i++) {
+            int bi = i;
+            Procedure alt_i = branches[bi];
+            filteredBranches[bi] = () -> {
+                curD = d + bi;
+                if (curD <= maxD) {
+                    alt_i.call();
+                }
+            };
+            if (curD >= maxD) return Arrays.copyOfRange(filteredBranches, 0, i + 1);
+        }
+        return filteredBranches;
     }
 }

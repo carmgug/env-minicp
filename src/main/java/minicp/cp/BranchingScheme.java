@@ -178,9 +178,39 @@ public final class BranchingScheme {
      * @param valueSelector given a variable, returns the value to which
      *                      it must be assigned on the left branch (and excluded on the right)
      */
+    private static IntVar lastConflict = null;
     public static Supplier<Procedure[]> lastConflict(Supplier<IntVar> variableSelector, Function<IntVar, Integer> valueSelector) {
-         throw new NotImplementedException("lastConflict");
+        return () -> {
+            IntVar x = (lastConflict != null && !lastConflict.isFixed()) ? lastConflict : variableSelector.get();
+            if (x != null && !x.isFixed()) {
+                int v = valueSelector.apply(x);
+                Procedure left = () -> {
+                    try {
+                        x.getSolver().post(equal(x, v));
+                    } catch (InconsistencyException e) {
+                        lastConflict = x;
+                        throw e;
+                    }
+                };
+                Procedure right = () -> {
+                    try {
+                        x.getSolver().post(notEqual(x, v));
+                    } catch (InconsistencyException e) {
+                        lastConflict = x;
+                        throw e;
+                    }
+                };
+                return branch(left, right);
+            } else {
+                return EMPTY;
+            }
+        };
+
+
     }
+
+
+
 
     /**
      * Conflict Ordering Search
@@ -194,8 +224,46 @@ public final class BranchingScheme {
      * @param valueSelector given a variable, returns the value to which
      *                      it must be assigned on the left branch (and excluded on the right)
      */
+    private static Map<IntVar, Integer> conflictOrdering = new HashMap<>();
+    private static int nConflicts=0;
     public static Supplier<Procedure[]> conflictOrderingSearch(Supplier<IntVar> variableSelector, Function<IntVar, Integer> valueSelector) {
-         throw new NotImplementedException("conflictOrderingSearch");
+        return () -> {
+            IntVar x;
+            if(conflictOrdering.isEmpty() || conflictOrdering.entrySet().stream().allMatch(curr -> curr.getValue()==0 || curr.getKey().isFixed())){
+                x=variableSelector.get();
+            }
+            else {
+                x = conflictOrdering.entrySet().stream()
+                        .filter(entry -> entry.getValue() > 0 && !entry.getKey().isFixed())
+                        .max(Map.Entry.comparingByValue())
+                        .map(Map.Entry::getKey)
+                        .orElse(variableSelector.get());
+            }
+            if (x != null && !x.isFixed()) {
+                int v = valueSelector.apply(x);
+                Procedure left = () -> {
+                    try {
+                        x.getSolver().post(equal(x, v));
+                    } catch (InconsistencyException e) {
+                        nConflicts++;
+                        conflictOrdering.put(x, nConflicts);
+                        throw e;
+                    }
+                };
+                Procedure right = () -> {
+                    try {
+                        x.getSolver().post(notEqual(x, v));
+                    } catch (InconsistencyException e) {
+                        nConflicts++;
+                        conflictOrdering.put(x, nConflicts);
+                        throw e;
+                    }
+                };
+                return branch(left, right);
+            } else {
+                return EMPTY;
+            }
+        };
     }
 
 }
