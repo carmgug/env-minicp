@@ -300,7 +300,7 @@ public class DialARide {
             if(xs==null) return EMPTY;
 
             // Get the index of the selected node
-            System.out.println(selected);
+            //System.out.println(selected);
 
 
 
@@ -324,7 +324,7 @@ public class DialARide {
 
 
 
-            System.out.println("Nearest Nodes: "+Arrays.toString(nearestNodes));
+            //System.out.println("Nearest Nodes: "+Arrays.toString(nearestNodes));
 
 
 
@@ -333,7 +333,7 @@ public class DialARide {
                     .filter(successor -> isWorth(curr_position,successor))
                     .boxed().collect(Collectors.toList());
 
-            System.out.println("Nearest Nodes Filtered: "+nearestNodes_filtered.toString());
+            //System.out.println("Nearest Nodes Filtered: "+nearestNodes_filtered.toString());
 
 
             double mostUrgent = Integer.MAX_VALUE;
@@ -373,13 +373,13 @@ public class DialARide {
 
 
 
-            System.out.println("Nearest Nodes sorted by cost: "+mostUrgentNode);
-            System.out.println("VisitedByVehicle: "+visitedByVehicle[selected]);
-            System.out.println("Time: "+time[selected].min());
-            System.out.println("Pred:"+pred[selected]);
-            System.out.println("Node: "+selected);
-            System.out.println("MaxRouting Time: "+maxRouteDuration);
-            System.out.println("MostUrgent Node: "+vehicleCapacity);
+            //System.out.println("Nearest Nodes sorted by cost: "+mostUrgentNode);
+            //System.out.println("VisitedByVehicle: "+visitedByVehicle[selected]);
+            //System.out.println("Time: "+time[selected].min());
+            //System.out.println("Pred:"+pred[selected]);
+            //System.out.println("Node: "+selected);
+            //System.out.println("MaxRouting Time: "+maxRouteDuration);
+            //System.out.println("MostUrgent Node: "+vehicleCapacity);
 
 
             if(mostUrgentNode==-1){
@@ -397,7 +397,7 @@ public class DialARide {
             //ok now go to the nearest and then go to the most urgent but check if i can do that
 
 
-            System.out.println("Sono andato al nearest");
+            //System.out.println("Sono andato al nearest");
             return branch(() -> {
                 try {
                     cp.post(equal(succ[finalSelected], best));
@@ -458,8 +458,8 @@ public class DialARide {
 
 
             final int idx_sol= curr_solution.get();
-            System.out.println("I pickup vanno da "+nVehicles+" a "+(nVehicles+pickupRideStops.size()));
-            System.out.println("I drop vanno da "+(nVehicles+pickupRideStops.size())+" a "+(nVehicles+pickupRideStops.size()+dropRideStops.size()));
+            //System.out.println("I pickup vanno da "+nVehicles+" a "+(nVehicles+pickupRideStops.size()));
+            //System.out.println("I drop vanno da "+(nVehicles+pickupRideStops.size())+" a "+(nVehicles+pickupRideStops.size()+dropRideStops.size()));
             for (int i = 0; i < nVehicles; i++) {
                 int curr_node = i;
                 while (curr_node < nVehicles + pickupRideStops.size() + dropRideStops.size()) {
@@ -487,9 +487,9 @@ public class DialARide {
 
         SearchStatistics stats=dfs.solve(statistics -> statistics.numberOfSolutions() ==totalSolution);
 
-        System.out.println("Ho ritornato la soluzione");
-        System.out.println("Number of failure: "+stats.numberOfFailures());
-        System.out.println("Number of nodes: "+stats.numberOfNodes());
+        //System.out.println("Ho ritornato la soluzione");
+        //System.out.println("Number of failure: "+stats.numberOfFailures());
+        //System.out.println("Number of nodes: "+stats.numberOfNodes());
 
         return allSolutions;
 
@@ -780,25 +780,21 @@ public class DialARide {
                                      int[][] distanceMatrix, int maxRouteDuration,int maxRideTime){
         int number_of_task=pickupRideStops.size();
 
-        System.out.println("Sono a curr Position: "+curr_position);
 
 
         if (isADepot(successor,nVehicles,number_of_task)){
-            System.out.println("Stiamo valutando un Depot");
             return evaluateDepotNode(curr_position,successor, nVehicles, vehicleCapacity, pickupRideStops, dropRideStops,
                     managedBy, peopleOn, time, visitedByVehicle, pred, succ, distanceMatrix, maxRouteDuration, maxRideTime);
         }
 
 
         else if(isADrop(successor,nVehicles,number_of_task)){
-            System.out.println("Stiamo valutando un Drop");
             return evaluateDropNode(curr_position,successor, nVehicles, vehicleCapacity, pickupRideStops, dropRideStops,
                     managedBy, peopleOn, time, visitedByVehicle, pred, succ, distanceMatrix, maxRouteDuration, maxRideTime);
         }
 
         //it's a pickup node
         else if (isAPickup(successor,nVehicles,number_of_task)){
-            System.out.println("Stiamo valutando un Pickup");
             return evaluatePickupNode(curr_position,successor, nVehicles, vehicleCapacity, pickupRideStops, dropRideStops,
                     managedBy, peopleOn, time, visitedByVehicle, pred, succ, distanceMatrix, maxRouteDuration, maxRideTime);
         }
@@ -813,12 +809,12 @@ public class DialARide {
         //1. Dont go to the DepotNode if the veichle  (Constraint does for us)
         //2. Dont go to the DepotNode if there are tasks to do and i can manage one of them
         if(isAPickup(curr_position,nVehicles,pickupRideStops.size())) {
-            System.out.println("Non è stato aggiunto perchè siamo in un pickup");
+            //System.out.println("Non è stato aggiunto perchè siamo in un pickup");
             return false;
         }
 
         if(isADrop(curr_position,nVehicles,pickupRideStops.size()) && peopleOn[curr_position].max()!=0){
-            System.out.println("Sto valutando di andare a un deposito Non è stato aggiunto perchè ci sono ancora persone da portare in ospedale");
+            //System.out.println("Sto valutando di andare a un deposito Non è stato aggiunto perchè ci sono ancora persone da portare in ospedale");
             return false;
         }
 
@@ -847,7 +843,7 @@ public class DialARide {
                 if(currTime_tmp>=maxRouteDuration){
                     continue;
                 }
-                System.out.println("A task is available and i can do it");
+                //System.out.println("A task is available and i can do it");
                 //ok it's not worth to go to the depot beacuse exist a path that i can do
                 return false;
             }
