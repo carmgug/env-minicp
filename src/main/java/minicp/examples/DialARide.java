@@ -1202,7 +1202,7 @@ public class DialARide {
         // Reading the data
 
         //TODO change file to test the various instances.
-        InputReader reader = new InputReader("data/dialaride/custom0");
+        InputReader reader = new InputReader(args[0]);
 
         int nVehicles = reader.getInt();
         reader.getInt(); //ignore
