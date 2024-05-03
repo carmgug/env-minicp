@@ -335,6 +335,11 @@ public class DialARide {
                 // Calcola il costo totale come la somma dei costi basati sulla finestra temporale e sulla distanza
                 double cost_time=windowDiff+(distanceCost*0.8);
 
+                if(isADrop(node)){
+                    cost_time*=0.9;
+                }
+
+
 
                 if (distanceCost < mostNearest) {
                     mostNearest = cost_time;
