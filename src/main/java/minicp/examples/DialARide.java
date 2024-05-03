@@ -149,7 +149,7 @@ public class DialARide {
             cp.post(equal(peopleOn[end_depot],0));
             //The successor of the end depot can only be a start depot
             cp.post(equal(succ[end_depot],(i+1)%nVehicles));
-            cp.post(equal(pred[i],(end_depot)%nVehicles));
+            cp.post(equal(pred[(i+1)%nVehicles],end_depot));
             //cp.post(equal(visitedByVehicle[end_depot],visitedByVehicle[(i+1)%nVehicles]));
             cp.post(new Element1DVar(visitedByVehicle,index[i],visitedByVehicle[end_depot]));
 
@@ -293,6 +293,7 @@ public class DialARide {
             xs.fillArray(nearestNodes);
             //if nearestNodes doesnt contains dropnode and i'm at drop node without people on the veichle then incocystency
             //beacuse in this path i can't reach the end depot
+            /*
             if(isADrop(selected) && peopleOn[selected].max()==0){
                 boolean notFind=true;
                 for (int node : nearestNodes) {
@@ -302,14 +303,16 @@ public class DialARide {
                 }
                 if(notFind) throw new InconsistencyException();
             }
+            /*
 
+             */
             System.out.println("Nearest Nodes: "+Arrays.toString(nearestNodes));
 
 
 
             int curr_position= selected;
             List<Integer> nearestNodes_filtered = Arrays.stream(nearestNodes)
-                    //.filter(successor -> isWorth(curr_position,successor))
+                    .filter(successor -> isWorth(curr_position,successor))
                     .boxed().collect(Collectors.toList());
 
             System.out.println("Nearest Nodes Filtered: "+nearestNodes_filtered.toString());
@@ -326,7 +329,6 @@ public class DialARide {
                 int windowDiff = pickupAndDropRideStops.get(node-nVehicles).window_end-time[selected].min();
                 // Calcola il costo basato sulla distanza
                 int distanceCost = distanceMatrix[selected][node];
-
 
                 // Calcola il costo totale come la somma dei costi basati sulla finestra temporale e sulla distanza
                 double cost_time=windowDiff*distanceCost;
@@ -539,15 +541,12 @@ public class DialARide {
 
         int pickupNode=successor-pickupRideStops.size();
         //questa cosa non fuziona
-        /*
+
         if(!managedBy[pickupNode-nVehicles].isFixed()){
-            System.out.println("ho tolto il drop");
             //!pred[pickupNode].isFixed() if true then the pickup node is not yet visited so it's not my task
             //VisitedByVehicle[pickupNode].min()!=VisitedByVehicle[curr_position].min() if true then the pickup node is not managed by my veichle
             return false;
         }
-        */
-
 
         //if the veichle can't reach the node before the window end
         /*
@@ -556,9 +555,6 @@ public class DialARide {
         }
 
          */
-
-
-
 
         return true;
     }
