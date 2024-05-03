@@ -423,16 +423,16 @@ public class DialARide {
 
             DialARideSolution curr_sol= new DialARideSolution(nVehicles,pickupRideStops,dropRideStops,depot,vehicleCapacity,maxRideTime,maxRouteDuration);
             acc.getAndIncrement();
-            System.out.println("solution: "+totalDist.min());
-            System.out.println("Max Routing Time: "+maxRouteDuration);
+            //System.out.println("solution: "+totalDist.min());
+            //System.out.println("Max Routing Time: "+maxRouteDuration);
             for (int i = 0; i < n; i ++) bestPath[i] = succ[i].min();
             for (int i = 0; i < n; i ++) bestRideID[i] = visitedByVehicle[i].min();
-            System.out.println("Best path: "+Arrays.toString(bestPath));
-            System.out.println("Best ride ID: "+Arrays.toString(bestRideID));
+            //System.out.println("Best path: "+Arrays.toString(bestPath));
+            //System.out.println("Best ride ID: "+Arrays.toString(bestRideID));
 
 
             for (int i = 0; i < nVehicles; i++) {
-                System.out.println("Vehicle "+i);
+                //System.out.println("Vehicle "+i);
                 int current = i;
                 StringBuilder path = new StringBuilder();
                 StringBuilder vehicleRideID = new StringBuilder();
@@ -449,10 +449,10 @@ public class DialARide {
                 vehicleRideID.append(bestRideID[current]);
                 timeString.append(time[current].min());
                 sizeString.append(peopleOn[current].min());
-                System.out.println("Time: "+timeString.toString());
-                System.out.println("Path: "+path.toString());
-                System.out.println("Ride ID: "+vehicleRideID.toString());
-                System.out.println("Size: "+sizeString.toString());
+                //System.out.println("Time: "+timeString.toString());
+                //System.out.println("Path: "+path.toString());
+                //System.out.println("Ride ID: "+vehicleRideID.toString());
+                //System.out.println("Size: "+sizeString.toString());
 
             }
 
@@ -867,11 +867,11 @@ public class DialARide {
         int task_id=successor-nVehicles;
         if(!isADepot(curr_position,nVehicles,pickupRideStops.size()) && (peopleOn[curr_position].max())==vehicleCapacity){
             //the veichle is full, also the constraint check that.
-            System.out.println("Non posso andare a questo pickup perchè il veicolo è pieno"+successor);
+            //System.out.println("Non posso andare a questo pickup perchè il veicolo è pieno"+successor);
             return false;
         }
 
-        System.out.println("Maybe i can do it this : "+successor);
+        //System.out.println("Maybe i can do it this : "+successor);
 
         //Take all the task that the vehicle has to do
         int vehicle_id = visitedByVehicle[curr_position].min();
@@ -887,7 +887,7 @@ public class DialARide {
                 }
             }
         }
-        System.out.println("Task managed by the veichle: "+taskManagedByCurrentVehicle.toString());
+        //System.out.println("Task managed by the veichle: "+taskManagedByCurrentVehicle.toString());
 
         //Ok add the task associated to the succesor node
         if(taskManagedByCurrentVehicle.isEmpty()){//ok i don't have any task to do
@@ -1202,7 +1202,7 @@ public class DialARide {
         // Reading the data
 
         //TODO change file to test the various instances.
-        InputReader reader = new InputReader("data/dialaride/training");
+        InputReader reader = new InputReader("data/dialaride/custom1");
 
         int nVehicles = reader.getInt();
         reader.getInt(); //ignore
