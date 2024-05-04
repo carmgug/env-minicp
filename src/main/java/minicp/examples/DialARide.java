@@ -13,12 +13,15 @@ import minicp.util.io.InputReader;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static minicp.cp.BranchingScheme.*;
 import static minicp.cp.Factory.*;
 
+
+import java.lang.management.ManagementFactory;
 
 public class DialARide {
 
@@ -51,6 +54,19 @@ public class DialARide {
 
     private IntVar totalDist;
     private Objective obj_function;
+    AtomicInteger weight_distance= new AtomicInteger(1);
+
+
+
+    public static final long onesec = (long) 1e+9;
+    public static final long onemin = 60*onesec;
+    public static final long maxTime = 4*onemin - 1*onesec;
+    public static boolean debug = false;
+    private static int initFailLimit = 25;
+    private static int maxFailLimit = 60;
+    private static int minFailLimit = 10;
+    private static int remplissage = 85;
+    private static long timeLimitClever = 2*onesec;
 
 
 
@@ -196,11 +212,11 @@ public class DialARide {
             IntVar distPred = element(distanceMatrix[pickup],pred[pickup]);
             //time[pred]+distance[pred,pickup]<=window_end[pickup]
             cp.post(lessOrEqual(sum(timePred,distPred),pickupRideStops.get(task_id).window_end));
-            //cp.post(lessOrEqual(sum(timePred,distPred),time[pickup]));
+            //cp.post(lessOrEqual(sum(timePred,distPred),time[pickup].max()));
 
             //time[pickup]+distance[pickup,succ]<=window_end[succ]
             IntVar window_end= elementVar(time,succ[pickup]);
-            cp.post(lessOrEqual(sum(time[pickup],distSucc[pickup]),window_end));
+            //cp.post(lessOrEqual(sum(time[pickup],distSucc[pickup]),window_end));
 
 
 
@@ -288,7 +304,7 @@ public class DialARide {
 
         DFSearch dfs= makeDfs(cp, () -> {
 
-            //Select First Unfixed Variable
+            //Select First Unfixed Variable that have a pred fixed
             int selected = -1;
             IntVar xs=null;
             for (int i = 0; i < n; i++) {
@@ -349,13 +365,15 @@ public class DialARide {
                 int windowDiff = time[node].max()-time[selected].min();
                 // Calcola il costo basato sulla distanza
                 int distanceCost = distanceMatrix[selected][node];
-                if(windowDiff-distanceCost==0) {mostUrgentNode=node; break;}
+                //if(windowDiff-distanceCost==0) {mostUrgentNode=node; break;}
                 // Calcola il costo totale come la somma dei costi basati sulla finestra temporale e sulla distanza
-                double cost_time=windowDiff+(distanceCost*0.8);
-
+                double cost_time=(windowDiff*weight_distance.get()*0.25)+(distanceCost*3);
+                /*
                 if(isADrop(node)){
                     cost_time*=0.9;
                 }
+
+                 */
 
 
                 if (distanceCost < mostNearest) {
@@ -417,18 +435,22 @@ public class DialARide {
         AtomicInteger acc= new AtomicInteger();
         final int[] bestPath = new int[n];
         final int[] bestRideID = new int[n];
+        AtomicInteger bestSol=new AtomicInteger();
+
 
         AtomicInteger curr_solution= new AtomicInteger();
         dfs.onSolution(() -> {
 
             DialARideSolution curr_sol= new DialARideSolution(nVehicles,pickupRideStops,dropRideStops,depot,vehicleCapacity,maxRideTime,maxRouteDuration);
             acc.getAndIncrement();
+
             //System.out.println("solution: "+totalDist.min());
             //System.out.println("Max Routing Time: "+maxRouteDuration);
             for (int i = 0; i < n; i ++) bestPath[i] = succ[i].min();
             for (int i = 0; i < n; i ++) bestRideID[i] = visitedByVehicle[i].min();
             //System.out.println("Best path: "+Arrays.toString(bestPath));
             //System.out.println("Best ride ID: "+Arrays.toString(bestRideID));
+            bestSol.set(totalDist.min());
 
 
             for (int i = 0; i < nVehicles; i++) {
@@ -484,8 +506,15 @@ public class DialARide {
 
         });
 
+        long maxTime = 480*onesec;
+        long startTime = ManagementFactory.getThreadMXBean().getCurrentThreadCpuTime();
+        long maxRunTimeMS = maxTime;
+        System.out.println(ManagementFactory.getThreadMXBean().getCurrentThreadCpuTime());
+        System.out.println(ManagementFactory.getThreadMXBean().getCurrentThreadCpuTime()-startTime);
+        System.out.println(maxRunTimeMS);
+        lns(dfs,bestPath,allSolutions,bestSol,i-> (ManagementFactory.getThreadMXBean().getCurrentThreadCpuTime()) - startTime > maxRunTimeMS);
 
-        SearchStatistics stats=dfs.solve(statistics -> statistics.numberOfSolutions() ==totalSolution);
+
 
         //System.out.println("Ho ritornato la soluzione");
         //System.out.println("Number of failure: "+stats.numberOfFailures());
@@ -493,6 +522,64 @@ public class DialARide {
 
         return allSolutions;
 
+    }
+
+
+    private void lns(DFSearch dfs, int[] bestPath, List<DialARideSolution> allSolutions, AtomicInteger bestSol, Predicate<Integer> stopLNS){
+
+        //Find a first solution
+        dfs.optimize(obj_function,statistics -> statistics.numberOfSolutions() ==1);
+
+
+
+
+        System.out.println("Starting Lns");
+        weight_distance.set(0);
+        System.out.println("Best Solution: "+bestSol.get());
+
+        Random rand = new Random(0);
+        final long onesec = (long) 1e+9;
+        final long onemin = 60*onesec;
+        final long maxTime = 10*onesec;
+        final long remplissage = 85;
+        int maxFailLimit = 60;
+        int minFailLimit = 10;
+
+
+        int failureLimit = 500;
+        int percentage = 85;
+        System.out.println(stopLNS.test(bestSol.get()));
+        System.out.println(ManagementFactory.getThreadMXBean().getCurrentThreadCpuTime());
+
+        while(!stopLNS.test(bestSol.get())){
+            System.out.println("Best Solution: "+bestSol.get());
+
+            dfs.optimizeSubjectTo(obj_function,
+                    statistics -> statistics.numberOfFailures()>=failureLimit || stopLNS.test(bestSol.get()),
+                    ()-> {
+
+                        // Assign the fragment percentage% of the variables randomly chosen
+                        for (int j = 0; j < n; j++) {
+                            if (rand.nextInt(100) < percentage) {
+                                // after the solveSubjectTo those constraints are removed
+                                cp.post(equal(succ[j], bestPath[j]));
+                            }
+                        }
+
+                    }
+
+
+
+
+
+
+                    );
+
+
+
+
+
+        }
     }
 
     private boolean isWorth(int curr_position,int successor){
@@ -596,7 +683,7 @@ public class DialARide {
         }
 
         //if the veichle can't reach the node before the window end
-        if(time[curr_position].min()+distanceMatrix[curr_position][successor]>dropRideStops.get(successor-nVehicles-pickupRideStops.size()).window_end){
+        if(time[curr_position].min()+distanceMatrix[curr_position][successor]>time[successor].max()){
             return false;
         }
 
@@ -766,8 +853,7 @@ public class DialARide {
         DialARide dialARide = new DialARide(nVehicles, maxRouteDuration, vehicleCapacity, maxRideTime, pickupRideStops, dropRideStops, depot);
         dialARide.buildModel();
         List<DialARideSolution> sol=dialARide.getSolution(1);
-
-        return sol.get(0);
+        return sol.get(sol.size()-1);
 
 
     }
