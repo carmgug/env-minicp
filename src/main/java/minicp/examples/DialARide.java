@@ -59,15 +59,6 @@ public class DialARide {
 
 
 
-    public static final long onesec = (long) 1e+9;
-    public static final long onemin = 60*onesec;
-    public static final long maxTime = 4*onemin - 1*onesec;
-    public static boolean debug = false;
-    private static int initFailLimit = 25;
-    private static int maxFailLimit = 60;
-    private static int minFailLimit = 10;
-    private static int remplissage = 85;
-    private static long timeLimitClever = 2*onesec;
 
 
 
@@ -381,12 +372,12 @@ public class DialARide {
                 double cost_time_2=(windowDiff*0.2)+(distanceCost);
 
 
-                /*
+
                 if(isADrop(node)){
-                    cost_time*=0.2;
+                    cost_time*=0.8;
                 }
 
-                 */
+
 
                 if (distanceCost < mostNearest) {
                     mostNearest = distanceCost;
@@ -419,7 +410,7 @@ public class DialARide {
             int best= mostUrgentNode;
             int best_2=mostNearestNode;
 
-
+            /*
             if(best!=best_2){//ok try if i can go to the nearest and then go to the most urgent
                 int time_at_curr= time[finalSelected].min();
                 int upperLimit = time[mostUrgentNode].max();
@@ -443,6 +434,8 @@ public class DialARide {
                     );
                 }
             }
+
+             */
 
 
 
@@ -583,8 +576,8 @@ public class DialARide {
 
 
 
-        int failureLimit =  500;
-        int percentage = 80;
+        int failureLimit =  100;
+        int percentage = 75;
         //System.out.println(stopLNS.test(bestSol.get()));
         //System.out.println(ManagementFactory.getThreadMXBean().getCurrentThreadCpuTime());
 
