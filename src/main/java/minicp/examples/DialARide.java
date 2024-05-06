@@ -377,14 +377,16 @@ public class DialARide {
                 int distanceCost = distanceMatrix[selected][node];
                 //if(windowDiff-distanceCost==0) {mostUrgentNode=node; break;}
                 // Calcola il costo totale come la somma dei costi basati sulla finestra temporale e sulla distanza
-                double cost_time=(windowDiff)*(distanceCost*0.8);
+                double cost_time=(windowDiff)*(distanceCost);
                 double cost_time_2=(windowDiff*0.2)+(distanceCost);
 
 
-
+                /*
                 if(isADrop(node)){
                     cost_time*=0.2;
                 }
+
+                 */
 
                 if (distanceCost < mostNearest) {
                     mostNearest = distanceCost;
@@ -417,7 +419,7 @@ public class DialARide {
             int best= mostUrgentNode;
             int best_2=mostNearestNode;
 
-            /*
+
             if(best!=best_2){//ok try if i can go to the nearest and then go to the most urgent
                 int time_at_curr= time[finalSelected].min();
                 int upperLimit = time[mostUrgentNode].max();
@@ -442,7 +444,7 @@ public class DialARide {
                 }
             }
 
-             */
+
 
 
 
