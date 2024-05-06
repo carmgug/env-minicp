@@ -544,8 +544,8 @@ public class DialARide {
 
         });
 
-        long sec= (long) 1e+8;
-        long maxTime = 1580*sec;
+        long sec= (long) 1e+9;
+        long maxTime = 540*sec;
         long startTime = ManagementFactory.getThreadMXBean().getCurrentThreadCpuTime();
         long maxRunTimeMS = maxTime;
         //System.out.println(ManagementFactory.getThreadMXBean().getCurrentThreadCpuTime());
