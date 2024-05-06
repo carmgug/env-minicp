@@ -574,7 +574,10 @@ public class DialARide {
 
 
         int failureLimit =  25;
-        AtomicInteger percentage = new AtomicInteger(65);//2313 2320 23 21 20169
+        AtomicInteger percentage = new AtomicInteger(70);//2313 2320 23 21 20169
+
+        //istanza 3 22: 9 minuti dopo 8019
+        //istanza 3
         //System.out.println(stopLNS.test(bestSol.get()));
         //System.out.println(ManagementFactory.getThreadMXBean().getCurrentThreadCpuTime());
 
