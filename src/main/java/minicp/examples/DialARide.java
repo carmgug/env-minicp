@@ -473,7 +473,7 @@ public class DialARide {
             DialARideSolution curr_sol= new DialARideSolution(nVehicles,pickupRideStops,dropRideStops,depot,vehicleCapacity,maxRideTime,maxRouteDuration);
             acc.getAndIncrement();
 
-            System.out.println("solution: "+totalDist.min());
+            //System.out.println("solution: "+totalDist.min());
             //System.out.println("Max Routing Time: "+maxRouteDuration);
             for (int i = 0; i < n; i ++) bestPath[i] = succ[i].min();
             for (int i = 0; i < n; i ++) bestRideID[i] = visitedByVehicle[i].min();
