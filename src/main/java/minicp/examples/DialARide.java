@@ -1,13 +1,10 @@
 package minicp.examples;
 
-import minicp.cp.BranchingScheme;
 import minicp.engine.constraints.*;
-import minicp.engine.core.BoolVar;
 import minicp.engine.core.IntVar;
 import minicp.engine.core.Solver;
 import minicp.search.DFSearch;
 import minicp.search.Objective;
-import minicp.search.SearchStatistics;
 import minicp.util.exception.InconsistencyException;
 import minicp.util.io.InputReader;
 
@@ -15,7 +12,6 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 import static minicp.cp.BranchingScheme.*;
 import static minicp.cp.Factory.*;
@@ -477,7 +473,7 @@ public class DialARide {
             DialARideSolution curr_sol= new DialARideSolution(nVehicles,pickupRideStops,dropRideStops,depot,vehicleCapacity,maxRideTime,maxRouteDuration);
             acc.getAndIncrement();
 
-            //System.out.println("solution: "+totalDist.min());
+            System.out.println("solution: "+totalDist.min());
             //System.out.println("Max Routing Time: "+maxRouteDuration);
             for (int i = 0; i < n; i ++) bestPath[i] = succ[i].min();
             for (int i = 0; i < n; i ++) bestRideID[i] = visitedByVehicle[i].min();
@@ -540,6 +536,7 @@ public class DialARide {
         });
 
         long sec= (long) 1e+9;
+        //2258
         long maxTime = 540*sec;
         long startTime = ManagementFactory.getThreadMXBean().getCurrentThreadCpuTime();
         long maxRunTimeMS = maxTime;
@@ -576,8 +573,8 @@ public class DialARide {
 
 
 
-        int failureLimit =  100;
-        int percentage = 75;
+        int failureLimit =  25;
+        AtomicInteger percentage = new AtomicInteger(65);//2313 2320 23 21 20169
         //System.out.println(stopLNS.test(bestSol.get()));
         //System.out.println(ManagementFactory.getThreadMXBean().getCurrentThreadCpuTime());
 
@@ -597,11 +594,12 @@ public class DialARide {
                     ()-> {
                         // Assign the fragment percentage% of the variables randomly chosen
                         for (int j = 0; j < n; j++) {
-                            if (rand.nextInt(100) < percentage) {
+                            if (rand.nextInt(100) < percentage.get()) {
                                 // after the solveSubjectTo those constraints are removed
                                 cp.post(equal(succ[j], bestPath[j]));
                             }
                         }
+
                         //System.out.println(stopLNS.test(bestSol.get()));
                     }
 
