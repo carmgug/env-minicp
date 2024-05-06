@@ -243,6 +243,8 @@ public class DialARide {
             IntVar peopleOnPred = elementVar(peopleOn, pred[pickup]);
             cp.post(equal(peopleOn[pickup], plus(peopleOnPred, 1)));
             cp.post(lessOrEqual(peopleOnPred, vehicleCapacity-1)); //beacuse we need to take a person
+            //constrain to try tomorrow
+            //cp.post(new Element1DVar(peopleOn,pred[pickup],minus(peopleOn[pickup],1)));
 
             IntVar peopleOnPred_d = elementVar(peopleOn, pred[drop]);
             cp.post(equal(peopleOn[drop], minus(peopleOnPred_d, 1)));
@@ -368,10 +370,11 @@ public class DialARide {
                 double cost_time_2=(windowDiff*0.2)+(distanceCost);
 
 
-
+                /*
                 if(isADrop(node)){
                     cost_time*=0.8;
                 }
+                 */
 
 
 
@@ -406,7 +409,7 @@ public class DialARide {
             int best= mostUrgentNode;
             int best_2=mostNearestNode;
 
-            /*
+
             if(best!=best_2){//ok try if i can go to the nearest and then go to the most urgent
                 int time_at_curr= time[finalSelected].min();
                 int upperLimit = time[mostUrgentNode].max();
@@ -430,8 +433,6 @@ public class DialARide {
                     );
                 }
             }
-
-             */
 
 
 
@@ -473,7 +474,7 @@ public class DialARide {
             DialARideSolution curr_sol= new DialARideSolution(nVehicles,pickupRideStops,dropRideStops,depot,vehicleCapacity,maxRideTime,maxRouteDuration);
             acc.getAndIncrement();
 
-            //System.out.println("solution: "+totalDist.min());
+            System.out.println("solution: "+totalDist.min());
             //System.out.println("Max Routing Time: "+maxRouteDuration);
             for (int i = 0; i < n; i ++) bestPath[i] = succ[i].min();
             for (int i = 0; i < n; i ++) bestRideID[i] = visitedByVehicle[i].min();
@@ -573,13 +574,16 @@ public class DialARide {
 
 
 
-        int failureLimit =  25;
-        AtomicInteger percentage = new AtomicInteger(70);//2313 2320 23 21 20169
+        int failureLimit =  50;
+        AtomicInteger percentage = new AtomicInteger(65);//2313 2320 23 21 20169
 
         //istanza 3 22: 9 minuti dopo 8019
         //istanza 3
         //System.out.println(stopLNS.test(bestSol.get()));
         //System.out.println(ManagementFactory.getThreadMXBean().getCurrentThreadCpuTime());
+        //1356 70 25
+        //13581 65 25 istance 0
+        //
 
         while(!stopLNS.test(ManagementFactory.getThreadMXBean().getCurrentThreadCpuTime())){
             if(stopLNS.test(ManagementFactory.getThreadMXBean().getCurrentThreadCpuTime())){
