@@ -96,22 +96,7 @@ public class DialARide {
         index = makeIntVarArray(cp, n, n); //index[i] is the position of the node i in the path (so index[i]=i)
         visitedByVehicle = makeIntVarArray(cp, n, nVehicles); //VisitedByVehicle[i] is the vehicle that visit the node i
         managedBy= makeIntVarArray(cp,number_of_tasks,nVehicles); //IntVar that represent the vehicle that manage the pickup node i
-
         time = makeIntVarArray(cp, n, 0, maxRouteDuration+1); //time[i] is the time when the vehicle visit the n
-        /*
-        //intilize domain time
-        for (int i = 0; i < nVehicles; i++) {
-            time[i]=makeIntVar(cp,1); //the time at the depot is 0
-            time[first_end_depot+i]=makeIntVar(cp,maxRouteDuration+1);
-        }
-        for (int i = nVehicles; i < nVehicles+number_of_tasks; i++) {
-            int task=i-nVehicles;
-            int dropNode= i +number_of_tasks;
-            time[i]=makeIntVar(cp,0,pickupRideStops.get(task).window_end+1);
-            time[dropNode]=makeIntVar(cp,0,dropRideStops.get(task).window_end+1);
-        }
-
-         */
 
         //Adding circuit constraint
         cp.post(new Circuit(succ));
@@ -178,6 +163,7 @@ public class DialARide {
 
             //the pred of the end depot must have 0 people on
             cp.post(new Element1DVar(peopleOn,pred[end_depot],peopleOn[end_depot]));
+            //cp.post(new Element1DVar(peopleOn,succ[i],peopleOn[i]));
             //the pred of the end depot must arrive in time
             //IntVar timePred = elementVar(time,pred[end_depot]);
             //IntVar distPred = element(distanceMatrix[end_depot],pred[end_depot]);
@@ -202,28 +188,34 @@ public class DialARide {
 
             cp.post(lessOrEqual(time[pickup], maxRouteDuration));
             cp.post(lessOrEqual(time[pickup], pickupRideStops.get(task_id).window_end));
-            cp.post(largerOrEqual(time[pickup],minus(time[drop],maxRideTime))); //max time
+            //cp.post(largerOrEqual(time[pickup],minus(time[drop],maxRideTime))); //max time
+
+
             //Mandatory time
-            cp.post(lessOrEqual(time[pickup], dropRideStops.get(task_id).window_end - distanceMatrix[pickup][drop])); //mandatory time
-            cp.post(lessOrEqual(time[pickup],minus(time[drop],distanceMatrix[pickup][drop]))); //mandatory time
+            //cp.post(lessOrEqual(time[pickup], dropRideStops.get(task_id).window_end - distanceMatrix[pickup][drop])); //mandatory time
+            //cp.post(lessOrEqual(time[pickup],minus(time[drop],distanceMatrix[pickup][drop]))); //mandatory time ask to teacher
             cp.post(lessOrEqual(time[pickup], time[drop])); //first visit the pick up and then the drop
             //the pred of a pick must have the time to reach the pick up
             //IntVar timePred = elementVar(time,pred[pickup]);
             //IntVar distPred = element(distanceMatrix[pickup],pred[pickup]);
             //time[pred]+distance[pred,pickup]<=window_end[pickup]
             //cp.post(lessOrEqual(sum(timePred,distPred[pickup]),pickupRideStops.get(task_id).window_end));
-            //cp.post(largerOrEqual(time[pickup],sum(timePred,distPred)));
+            //cp.post(largerOrEqual(time[pickup],sum(timePred,distPred[pickup])));
 
             //time[pickup]+distance[pickup,succ]<=window_end[succ]
             //IntVar window_end= elementVar(time,succ[pickup]);
             //cp.post(lessOrEqual(sum(time[pickup],distSucc[pickup]),window_end));
 
 
+
+
             cp.post(new Element1D(distanceMatrix[drop], succ[drop], distSucc[drop]));
             cp.post(new Element1DVar(time, succ[drop], sum(time[drop], distSucc[drop])));
+            //cp.post(new Element1DVar(time,pred[drop],minus(time[drop],distPred[drop].min())));
+
             cp.post(new Element1D(distanceMatrix[drop],pred[drop],distPred[drop]));
 
-            //cp.post(lessOrEqual(time[drop], maxRouteDuration));
+            cp.post(lessOrEqual(time[drop], maxRouteDuration));
             cp.post(lessOrEqual(time[drop], dropRideStops.get(task_id).window_end));
             cp.post(lessOrEqual(time[drop], plus(time[pickup], maxRideTime))); //max time
             cp.post(largerOrEqual(time[drop], time[pickup])); //first vist the pick up and the drop
@@ -240,15 +232,19 @@ public class DialARide {
 
             //Manage people
             //peopleOn[i]=peopleOn[pred[i]]+1
-            IntVar peopleOnPred = elementVar(peopleOn, pred[pickup]);
-            cp.post(equal(peopleOn[pickup], plus(peopleOnPred, 1)));
-            cp.post(lessOrEqual(peopleOnPred, vehicleCapacity-1)); //beacuse we need to take a person
+            //IntVar peopleOnPred = elementVar(peopleOn, pred[pickup]);
+            //cp.post(equal(peopleOn[pickup], plus(peopleOnPred, 1)));
+            //cp.post(lessOrEqual(peopleOnPred, vehicleCapacity-1)); //beacuse we need to take a person
             //constrain to try tomorrow
-            //cp.post(new Element1DVar(peopleOn,pred[pickup],minus(peopleOn[pickup],1)));
+            cp.post(new Element1DVar(peopleOn,pred[pickup],minus(peopleOn[pickup],1)));
+            //cp.post(new Element1DVar(peopleOn,succ[pickup],plus(peopleOn[pickup],1)));
 
-            IntVar peopleOnPred_d = elementVar(peopleOn, pred[drop]);
-            cp.post(equal(peopleOn[drop], minus(peopleOnPred_d, 1)));
-            cp.post(largerOrEqual(peopleOnPred_d, 1)); //beacuse we need to drop a person
+
+            //IntVar peopleOnPred_d = elementVar(peopleOn, pred[drop]);
+            //cp.post(equal(peopleOn[drop], minus(peopleOnPred_d, 1)));
+            //cp.post(largerOrEqual(peopleOnPred_d, 1)); //beacuse we need to drop a person
+            cp.post(new Element1DVar(peopleOn,pred[drop],plus(peopleOn[drop],1)));
+            //cp.post(new Element1DVar(peopleOn,succ[drop],minus(peopleOn[drop],1)));
 
             //Capacity
             cp.post(lessOrEqual(peopleOn[pickup], vehicleCapacity));
@@ -315,7 +311,9 @@ public class DialARide {
             if(xs==null) return EMPTY;
 
             // Get the index of the selected node
-            //System.out.println(selected);
+            System.out.println("Ho selezionato il nodo "+selected+" con il veicolo"+ visitedByVehicle[selected]);
+
+            System.out.println("I nodi di depot sono: "+nVehicles+" e "+first_end_depot);
 
 
 
@@ -339,7 +337,7 @@ public class DialARide {
 
 
 
-            //System.out.println("Nearest Nodes: "+Arrays.toString(nearestNodes));
+            System.out.println("Nearest Nodes: "+Arrays.toString(nearestNodes));
 
 
 
@@ -348,7 +346,7 @@ public class DialARide {
                     .filter(successor -> isWorth(curr_position,successor))
                     .boxed().collect(Collectors.toList());
 
-            //System.out.println("Nearest Nodes Filtered: "+nearestNodes_filtered.toString());
+            System.out.println("Nearest Nodes Filtered: "+nearestNodes_filtered.toString());
 
 
             double mostUrgent = Integer.MAX_VALUE;
@@ -356,8 +354,7 @@ public class DialARide {
             int mostUrgentNode=-1;
             int mostNearestNode=-1;
 
-
-
+            /*
             // Trova il nodo con il costo totale più basso come il nodo successivo
             for (int node : nearestNodes_filtered) {
                 // Calcola il costo basato sulla finestra temporale
@@ -366,16 +363,12 @@ public class DialARide {
                 int distanceCost = distanceMatrix[selected][node];
                 //if(windowDiff-distanceCost==0) {mostUrgentNode=node; break;}
                 // Calcola il costo totale come la somma dei costi basati sulla finestra temporale e sulla distanza
-                double cost_time=(windowDiff)*(distanceCost);
+                double cost_time=(windowDiff)*(distanceCost*0.8);
                 double cost_time_2=(windowDiff*0.2)+(distanceCost);
 
-
-                /*
                 if(isADrop(node)){
-                    cost_time*=0.8;
+                    cost_time*=0;
                 }
-                 */
-
 
 
                 if (distanceCost < mostNearest) {
@@ -387,6 +380,40 @@ public class DialARide {
                     mostUrgent = cost_time;
                     mostUrgentNode = node;
                 }
+            }
+
+             */
+
+            for (int node : nearestNodes_filtered) {
+                // Calcola la differenza tra la finestra temporale massima del nodo e il tempo minimo del nodo selezionato
+                int windowDiff = time[node].max() - time[selected].min();
+
+                // Calcola il costo basato sulla distanza tra i nodi
+                int distanceCost = distanceMatrix[selected][node];
+
+                // Calcola il costo totale come combinazione pesata del costo basato sulla finestra temporale e sulla distanza
+                double totalCost = (windowDiff * 0.1) * (distanceCost);
+
+                // Se il nodo è un nodo di destinazione, annulla il costo associato alla finestra temporale
+                /*
+                if (isADrop(node)) {
+                    totalCost = distanceCost * 0.9; // Si considera solo il costo basato sulla distanza
+                }
+
+                 */
+
+
+                // Se il costo totale è minore del minimo attuale, aggiorna il nodo successivo e il costo minimo
+                if (totalCost < mostUrgent) {
+                    mostUrgent = totalCost;
+                    mostUrgentNode = node;
+                }
+
+                if(distanceCost < mostNearest){
+                    mostNearest = distanceCost;
+                    mostNearestNode = node;
+                }
+
             }
 
             //Drop someone as as possible
@@ -408,7 +435,7 @@ public class DialARide {
             int finalSelected = selected;
             int best= mostUrgentNode;
             int best_2=mostNearestNode;
-
+            /*
 
             if(best!=best_2){//ok try if i can go to the nearest and then go to the most urgent
                 int time_at_curr= time[finalSelected].min();
@@ -434,6 +461,7 @@ public class DialARide {
                 }
             }
 
+             */
 
 
 
@@ -441,6 +469,9 @@ public class DialARide {
 
 
 
+
+
+            System.out.println("Da "+selected+"Ho scelto di andare veros "+ best);
 
             //ok now go to the nearest and then go to the most urgent but check if i can do that
 
@@ -450,12 +481,16 @@ public class DialARide {
                 try {
                     cp.post(equal(succ[finalSelected], best));
                 }catch (InconsistencyException e){
+                    System.out.println("Da "+finalSelected+"Sono tornato indetro da "+ best);
+
                     throw e;
                 }
                 },
                     () -> {try{
                         cp.post(notEqual(succ[finalSelected],best));
                     }catch (InconsistencyException e){
+                        System.out.println("Da "+finalSelected+"ho eliminato non la possibilità di andare su "+ best);
+
                         throw e;
                     }
                     });
@@ -544,9 +579,9 @@ public class DialARide {
         //System.out.println(ManagementFactory.getThreadMXBean().getCurrentThreadCpuTime());
         //System.out.println(ManagementFactory.getThreadMXBean().getCurrentThreadCpuTime()-startTime);
         //System.out.println(maxRunTimeMS);
-        lns(dfs,bestPath,allSolutions,bestSol,i-> (i - startTime > maxRunTimeMS ),startTime,maxRunTimeMS);
+        //lns(dfs,bestPath,allSolutions,bestSol,i-> (i - startTime > maxRunTimeMS ),startTime,maxRunTimeMS);
 
-        //dfs.solve(statistics -> statistics.numberOfSolutions() ==564);
+        dfs.solve(statistics -> statistics.numberOfSolutions() ==800);
 
 
         //System.out.println("Ho ritornato la soluzione");
@@ -623,11 +658,13 @@ public class DialARide {
         }
 
         else if(isADrop(successor)){
+            //return true;
             return evaluateDropNode(curr_position,successor);
         }
 
         //it's a pickup node
         else if (isAPickup(successor)){
+            //return true;
             return evaluatePickUpNode(curr_position,successor);
         }
         return true;
@@ -651,34 +688,35 @@ public class DialARide {
 
 
 
-
+        if(peopleOn[curr_position].max()!=0){ //you have person on the veichle
+            return false;
+        }
 
         //ok i have 0 person on the veichle and i'm at drop
         //i can go to a pickup if exist or to the end depot
         //if i go to a pickup i need to check if i can reach the drop node and then also the final depot.
         int currTime_tmp = time[curr_position].min();
-        int n= visitedByVehicle.length; //total nodes
-        int upperBoundPickup= n-nVehicles-pickupRideStops.size();
+        int upperBoundPickup= n-nVehicles-number_of_tasks;
         for (int i = nVehicles; i < upperBoundPickup; i++) {
-            if(!pred[i].isFixed()){ //not anyone visited the node i yet
+            int task_id=i-nVehicles;
+            if(!managedBy[task_id].isFixed()){ //not anyone visited the node i yet
                 int task = i-nVehicles;
                 int window_end_pickup = time[i].max();
                 int window_end_drop = time[i+number_of_tasks].max();
                 int pickupNode = i;
-                int depotNode = i+pickupRideStops.size();
+                int dropNode = i+pickupRideStops.size();
                 currTime_tmp+=distanceMatrix[curr_position][pickupNode];
                 if(currTime_tmp>=window_end_pickup){
                     //ok i cant do this task, try the next
                     continue;
                 }
-                currTime_tmp+=distanceMatrix[pickupNode][depotNode];
+                currTime_tmp+=distanceMatrix[pickupNode][dropNode];
                 if(currTime_tmp>=window_end_drop){
                     //ok i cant do this task, try the next
-
                     continue;
                 }
-                currTime_tmp+=distanceMatrix[depotNode][successor];
-                if(currTime_tmp>=maxRouteDuration){
+                currTime_tmp+=distanceMatrix[dropNode][successor];
+                if(currTime_tmp>=time[successor].max()){
                     //ok i cant do this task, try the next
 
                     continue;
@@ -706,17 +744,27 @@ public class DialARide {
         //if the drop node it's not managed by the veichle that visit the pickup node then it's not worth going to this node
 
         int pickupNode=successor-pickupRideStops.size();
-        //questa cosa non fuziona
-
-        if(!managedBy[pickupNode-nVehicles].isFixed()){
+        //this thing doesnt work
+        /*
+        if(!pred[pickupNode].isFixed()){
             //!pred[pickupNode].isFixed() if true then the pickup node is not yet visited so it's not my task
             //VisitedByVehicle[pickupNode].min()!=VisitedByVehicle[curr_position].min() if true then the pickup node is not managed by my veichle
             return false;
         }
 
+         */
+        if(!managedBy[pickupNode-nVehicles].isFixed() || managedBy[pickupNode-nVehicles].max()!=visitedByVehicle[curr_position].max()){
+            return false;
+        }
+
+
+
+
+
         //if the veichle can't reach the node before the window end
         if(time[curr_position].min()+distanceMatrix[curr_position][successor]>time[successor].max()){
-            return false;
+            throw new InconsistencyException(); //PATH IMPOSSIBILE DA RISOLVERE
+            //return false;
         }
 
 
