@@ -188,13 +188,15 @@ public class DialARide {
 
             cp.post(lessOrEqual(time[pickup], maxRouteDuration));
             cp.post(lessOrEqual(time[pickup], pickupRideStops.get(task_id).window_end));
-            //cp.post(largerOrEqual(time[pickup],minus(time[drop],maxRideTime))); //max time
+            //time[pickup]>=time[drop]-maxRideTime becuase time[drop] need to end before time[pickup]+maxRideTime
+            cp.post(largerOrEqual(time[pickup],minus(time[drop],maxRideTime))); //max time
+            cp.post(lessOrEqual(time[pickup], time[drop])); //first visit the pick up and then the drop
 
 
             //Mandatory time
             //cp.post(lessOrEqual(time[pickup], dropRideStops.get(task_id).window_end - distanceMatrix[pickup][drop])); //mandatory time
             //cp.post(lessOrEqual(time[pickup],minus(time[drop],distanceMatrix[pickup][drop]))); //mandatory time ask to teacher
-            cp.post(lessOrEqual(time[pickup], time[drop])); //first visit the pick up and then the drop
+
             //the pred of a pick must have the time to reach the pick up
             //IntVar timePred = elementVar(time,pred[pickup]);
             //IntVar distPred = element(distanceMatrix[pickup],pred[pickup]);
@@ -296,20 +298,51 @@ public class DialARide {
         final int totalSolution = number_of_soultion;
         List<DialARideSolution> allSolutions = new ArrayList<>();
 
+        AtomicInteger lastVehicle= new AtomicInteger();
+
 
         DFSearch dfs= makeDfs(cp, () -> {
 
             //Select First Unfixed Variable that have a pred fixed
+            //Possible Vehicle that can vist
+            //Check if the pred of the end depot is fixed
+
+            int[] notEnded= new int[nVehicles];
+            for (int i = 0; i < nVehicles; i++) {
+                if(!pred[first_end_depot+i].isFixed()){
+                    notEnded[i]=1;
+                }
+            }
+
+            //Now Select the first node that have a pred fixed and not a succ fixed but it's different from the lastVehicle
+            //if the vehicle not arrived at the end depot is more than 1
+
             int selected = -1;
             IntVar xs=null;
             for (int i = 0; i < n; i++) {
-                if(!succ[i].isFixed() && pred[i].isFixed() && (selected==-1 || succ[i].size()<xs.size())){
+                if(!succ[i].isFixed() && pred[i].isFixed() && (selected==-1 || visitedByVehicle[selected].max()!=lastVehicle.get() && succ[i].size()> xs.size() )){
                     selected=i;
                     xs=succ[i];
                 }
             }
+
+            if(xs==null) { //maybe the last vehicle is one so try again
+                selected = -1;
+                xs=null;
+                for (int i = 0; i < n; i++) {
+                    if(!succ[i].isFixed() && pred[i].isFixed() && (selected==-1 || succ[i].size()> xs.size() )){
+                        selected=i;
+                        xs=succ[i];
+                    }
+                }
+            }
+            //if now is null so all the variable are fixed
             if(xs==null) return EMPTY;
 
+            //update lastVehicle
+            lastVehicle.set(visitedByVehicle[selected].max());
+
+            System.out.println("Ho selezionato il nodo "+selected+" con il veicolo "+ visitedByVehicle[selected]);
             // Get the index of the selected node
             System.out.println("Ho selezionato il nodo "+selected+" con il veicolo"+ visitedByVehicle[selected]);
 
@@ -392,15 +425,16 @@ public class DialARide {
                 int distanceCost = distanceMatrix[selected][node];
 
                 // Calcola il costo totale come combinazione pesata del costo basato sulla finestra temporale e sulla distanza
-                double totalCost = (windowDiff * 0.1) * (distanceCost);
+                double totalCost = (windowDiff ) * (distanceCost*0.8);
 
                 // Se il nodo è un nodo di destinazione, annulla il costo associato alla finestra temporale
-                /*
-                if (isADrop(node)) {
-                    totalCost = distanceCost * 0.9; // Si considera solo il costo basato sulla distanza
+                if(isAPickup(node)){
+                    totalCost = (windowDiff);
                 }
 
-                 */
+                if (isADrop(node)) {
+                    totalCost = ((windowDiff)+ (distanceCost*0.1))*0.2; // Si considera solo il costo basato sulla distanza
+                }
 
 
                 // Se il costo totale è minore del minimo attuale, aggiorna il nodo successivo e il costo minimo
@@ -435,8 +469,8 @@ public class DialARide {
             int finalSelected = selected;
             int best= mostUrgentNode;
             int best_2=mostNearestNode;
-            /*
 
+            /*
             if(best!=best_2){//ok try if i can go to the nearest and then go to the most urgent
                 int time_at_curr= time[finalSelected].min();
                 int upperLimit = time[mostUrgentNode].max();
@@ -462,6 +496,8 @@ public class DialARide {
             }
 
              */
+
+
 
 
 
@@ -581,7 +617,7 @@ public class DialARide {
         //System.out.println(maxRunTimeMS);
         //lns(dfs,bestPath,allSolutions,bestSol,i-> (i - startTime > maxRunTimeMS ),startTime,maxRunTimeMS);
 
-        dfs.solve(statistics -> statistics.numberOfSolutions() ==800);
+        dfs.solve(statistics -> statistics.numberOfSolutions() ==1);
 
 
         //System.out.println("Ho ritornato la soluzione");
@@ -609,8 +645,8 @@ public class DialARide {
 
 
 
-        int failureLimit =  50;
-        AtomicInteger percentage = new AtomicInteger(65);//2313 2320 23 21 20169
+        int failureLimit =  30;
+        AtomicInteger percentage = new AtomicInteger(80);//2313 2320 23 21 20169
 
         //istanza 3 22: 9 minuti dopo 8019
         //istanza 3
