@@ -32,6 +32,7 @@ import minicp.util.Procedure;
 import minicp.util.exception.NotImplementedException;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -178,13 +179,61 @@ public class Steel extends OptimizationProblem {
             objective = cp.minimize(totLoss);
 
             // TODO 5 add static symmetry breaking constraint
+            /*
+                the loads of slabs must be decreasing or the losses must be decreasing
+             */
+            for (int j = 0; j < nSlab - 1; j++) {
+                //cp.post(new LessOrEqual(l[j], l[j + 1]));
+            }
+
 
 
             // TODO 6 implement a dynamic symmetry breaking during search
-            dfs = makeDfs(cp,firstFail(x));
+            /*
+            Implement a dynamic symmetry-breaking during search.
+            Select an order x representing the slab where this order is placed.
+             Assume that the maximum index of a slab containing an order is m.
+              Then create m+1 branches with x=0 ,x=1, ..., x=m, x=m+1
+              since all the decisions x=m+2, x=m+3, ...
+              would be subproblems symmetrical to x=m+1.
+              You should now be able to solve quickly
+              and optimally the instance data/steel/bench_19_10,
+               by reaching a zero-loss solution.
+             */
+            dfs = makeDfs(cp, () -> {
+                IntVar xs = selectMin(x,
+                        xi -> xi.size() > 1,
+                        xi -> xi.size());
+
+                if (xs == null) {
+                    return EMPTY;
+                } else {
+                    int maxUsedBin = getMaxUsedSlabIndex(x);
+                    ArrayList<Procedure> branches = new ArrayList<>();
+                    for (int j = 0; j <= maxUsedBin + 1; j++) {
+                        if (xs.contains(j)) {
+                            final int bin = j;
+                            branches.add(() -> cp.post(equal(xs, bin)));
+                        }
+                    }
+                    return branches.toArray(new Procedure[0]);
+                }
+            });
         } catch (InconsistencyException e) {
             e.printStackTrace();
         }
+    }
+
+    private int getMaxUsedSlabIndex(IntVar[] x) {
+        int maxUsedBin = -1; // Initialize to -1 to handle the case where no orders are assigned
+        for (IntVar xi : x) {
+            // Check if the variable xi is assigned and if its value is greater than the current maximum index
+            if (xi.isFixed() && xi.min() > maxUsedBin) {
+                // If so, update the maximum index
+                maxUsedBin = xi.min();
+            }
+        }
+        return maxUsedBin;
     }
 
     @Override
