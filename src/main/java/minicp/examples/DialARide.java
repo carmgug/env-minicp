@@ -58,6 +58,31 @@ public class DialARide {
 
 
 
+    private double getDistanceWeight() {
+        if(lns_started.get()==0){
+            return 0.3;
+        }
+        else {
+            return 0.4;
+        }
+    }
+
+    private double getTimeWeight() {
+        if(lns_started.get()==0){
+            return 0.7;
+        }
+        else {
+            return 0.6;
+        }
+    }
+    private double dropWeight() {
+        if(lns_started.get()==0){
+            return 0.3;
+        }
+        else {
+            return 0.9;
+        }
+    }
 
 
 
@@ -271,9 +296,6 @@ public class DialARide {
             }
         }
 
-
-
-
         totalDist = sum(distSucc);
         obj_function=cp.minimize(totalDist);
 
@@ -355,8 +377,7 @@ public class DialARide {
             int mostNearestNode = -1;
             double mostUrgentCost = Double.POSITIVE_INFINITY;
             double mostNearestCost = Double.POSITIVE_INFINITY;
-            double timeWeight = 0.7; // peso per windowDiff
-            double distanceWeight = 0.3; // peso per distanceCost
+
             for (int node : nearestNodes_filtered) {
                 // Calcola il costo basato sulla finestra temporale
                 int windowDiff = time[node].max()-time[selected].min();
@@ -364,13 +385,13 @@ public class DialARide {
                 int distanceCost = distanceMatrix[selected][node];
                 //if(windowDiff-distanceCost==0) {mostUrgentNode=node; break;}
                 // Calcola il costo totale come la somma dei costi basati sulla finestra temporale e sulla distanza
-                double cost_time = timeWeight * windowDiff + distanceWeight * distanceCost;
+                double cost_time = getTimeWeight() * windowDiff + getDistanceWeight() * distanceCost;
 
                 if (isAPickup(node)) {
-                    cost_time = timeWeight * windowDiff + distanceWeight * distanceCost;
+                    cost_time = getTimeWeight() * windowDiff + getDistanceWeight() * distanceCost;
                 }
                 if (isADrop(node)){
-                    cost_time = cost_time * 0.3;
+                    cost_time = cost_time * dropWeight();
                 }
 
 
@@ -621,8 +642,10 @@ public class DialARide {
                         curr_run.getAndIncrement();
                         //System.out.println("Random Path");
                         for (int j = 0; j < n; j++) {
-                            if (rand.nextInt(100) < percentage.get()) {
+                            if (rand.nextInt(100) < percentage.get() ) {
                                 // after the solveSubjectTo those constraints are removed
+                                if(bestPath[j]>=first_end_depot) continue; //for all the vehicle dont set the end
+
                                 cp.post(equal(succ[j], bestPath[j]));
                             }
                         }
