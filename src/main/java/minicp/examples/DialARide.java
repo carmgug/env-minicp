@@ -271,8 +271,8 @@ public class DialARide {
             //Manage visitedByVehicle
             cp.post(new Element1DVar(visitedByVehicle, succ[pickup], visitedByVehicle[pickup]));
             cp.post(new Element1DVar(visitedByVehicle, succ[drop], visitedByVehicle[drop]));
-            //cp.post(new Element1DVar(visitedByVehicle, pred[pickup], visitedByVehicle[pickup]));
-            //cp.post(new Element1DVar(visitedByVehicle, pred[drop], visitedByVehicle[drop]));
+            cp.post(new Element1DVar(visitedByVehicle, pred[pickup], visitedByVehicle[pickup]));
+            cp.post(new Element1DVar(visitedByVehicle, pred[drop], visitedByVehicle[drop]));
             cp.post(new Element1DVar(visitedByVehicle, index[pickup], visitedByVehicle[drop]));
             //cp.post(new Element1DVar(visitedByVehicle, index[drop], visitedByVehicle[pickup]));
 
@@ -621,7 +621,7 @@ public class DialARide {
         Random rand = new Random(0);
 
         AtomicInteger failureLimit = new AtomicInteger(1000);
-        AtomicInteger percentage = new AtomicInteger(70);//2313 2320 23 21 20169
+        AtomicInteger percentage = new AtomicInteger(80);//2313 2320 23 21 20169
 
         AtomicReference<List<Integer>> nodesToUnfix_at_last_iteration = new AtomicReference<>();
         AtomicInteger maxNodes= new AtomicInteger(3);
@@ -638,14 +638,18 @@ public class DialARide {
                     statistics -> statistics.numberOfFailures()>= failureLimit.get() || stopLNS.test(ManagementFactory.getThreadMXBean().getCurrentThreadCpuTime()),
                     ()-> {
 
+                        //Take the longest path
+
+
+
+
                         lns_started.set(3);
                         curr_run.getAndIncrement();
                         //System.out.println("Random Path");
                         for (int j = 0; j < n; j++) {
-                            if (rand.nextInt(100) < percentage.get() ) {
+                            if (rand.nextInt(100) < percentage.get() && curr_run.get()%10!=0) {
                                 // after the solveSubjectTo those constraints are removed
                                 if(bestPath[j]>=first_end_depot) continue; //for all the vehicle dont set the end
-
                                 cp.post(equal(succ[j], bestPath[j]));
                             }
                         }
