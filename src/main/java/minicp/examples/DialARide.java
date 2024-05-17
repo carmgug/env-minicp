@@ -63,7 +63,7 @@ public class DialARide {
             return 0.3;
         }
         else {
-            return 0.4;
+            return 0.6;
         }
     }
 
@@ -72,7 +72,7 @@ public class DialARide {
             return 0.7;
         }
         else {
-            return 0.6;
+            return 0.4;
         }
     }
     private double dropWeight() {
@@ -80,7 +80,7 @@ public class DialARide {
             return 0.3;
         }
         else {
-            return 0.9;
+            return 1;
         }
     }
 
@@ -117,8 +117,8 @@ public class DialARide {
         //Create Variables
         succ = makeIntVarArray(cp, n, n); //succ[i] is the successor node of i
         pred = makeIntVarArray(cp,n,n); //pred[i] is the predecessor node of i
-        distSucc = makeIntVarArray(cp, n, 0, maxRideTime+1); //distSucc[i] is the distance between node i and its successor
-        distPred = makeIntVarArray(cp, n, 0, maxRideTime+1); //distPred[i] is the distance between node i and its predecessor
+        distSucc = makeIntVarArray(cp, n, 0, maxRouteDuration+1); //distSucc[i] is the distance between node i and its successor
+        distPred = makeIntVarArray(cp, n, 0, maxRouteDuration+1); //distPred[i] is the distance between node i and its predecessor
         peopleOn = makeIntVarArray(cp, n, vehicleCapacity+1); //peopleOn[i] is the number of people on the vehicle when it visit the node i
         index = makeIntVarArray(cp, n, n); //index[i] is the position of the node i in the path (so index[i]=i)
         visitedByVehicle = makeIntVarArray(cp, n, nVehicles); //VisitedByVehicle[i] is the vehicle that visit the node i
@@ -191,7 +191,7 @@ public class DialARide {
             cp.post(new Element1DVar(visitedByVehicle, succ[start_depot],visitedByVehicle[start_depot]));
             //End
             //The vehicle that visit the end depot is the same that visit the start depot
-            cp.post(equal(visitedByVehicle[start_depot],visitedByVehicle[end_depot]));
+            cp.post(equal(visitedByVehicle[start_depot],visitedByVehicle[end_depot]));// check??
 
             //Manage distance
             //Start
@@ -229,12 +229,12 @@ public class DialARide {
             cp.post(lessOrEqual(time[pickup], pickupRideStops.get(task_id).window_end));
             //The vehicle must arrive at the pickup node before the end of the rideTime
             //time[pickup]>=time[drop]-maxRideTime becuase time[drop] need to end before time[pickup]+maxRideTime
-            cp.post(largerOrEqual(time[pickup],minus(time[drop],maxRideTime))); //max time
+            //cp.post(largerOrEqual(time[pickup],minus(time[drop],maxRideTime))); //max time tolto ota
             //The vehicle must arrive at the pickup node before the drop node
             cp.post(lessOrEqual(time[pickup], time[drop])); //first visit the pick up and then the drop
             // Calculate the mandatory time at the pickup node that still allows to go to the drop and then to the end depot
             //time[pickup]<=time[drop]-distanceMatrix[pickup][drop]
-            cp.post(lessOrEqual(time[pickup],minus(time[drop],distanceMatrix[pickup][drop])));
+            //cp.post(lessOrEqual(time[pickup],minus(time[drop],distanceMatrix[pickup][drop])));
 
 
             //Update distance and time DROP
@@ -251,7 +251,7 @@ public class DialARide {
             cp.post(lessOrEqual(time[drop], plus(time[pickup], maxRideTime))); //max time
             cp.post(largerOrEqual(time[drop], time[pickup])); //first vist the pick up and the drop
             //time[drop]>=time[pickup]+distanceMatrix[pickup][drop]
-            cp.post(largerOrEqual(time[drop],plus(time[pickup],distanceMatrix[pickup][drop])));
+            //cp.post(largerOrEqual(time[drop],plus(time[pickup],distanceMatrix[pickup][drop])));
 
 
 
@@ -273,13 +273,16 @@ public class DialARide {
             cp.post(new Element1DVar(visitedByVehicle, succ[drop], visitedByVehicle[drop]));
             cp.post(new Element1DVar(visitedByVehicle, pred[pickup], visitedByVehicle[pickup]));
             cp.post(new Element1DVar(visitedByVehicle, pred[drop], visitedByVehicle[drop]));
-            cp.post(new Element1DVar(visitedByVehicle, index[pickup], visitedByVehicle[drop]));
+            //cp.post(new Element1DVar(visitedByVehicle, index[pickup], visitedByVehicle[drop]));
+            cp.post(equal(visitedByVehicle[pickup], visitedByVehicle[drop]));
             //cp.post(new Element1DVar(visitedByVehicle, index[drop], visitedByVehicle[pickup]));
 
             //Manage managedBy
-            cp.post(new Element1DVar(managedBy, minus(index[pickup], nVehicles), visitedByVehicle[pickup]));
+            //cp.post(new Element1DVar(managedBy, minus(index[pickup], nVehicles), visitedByVehicle[pickup]));
             //The vehicle that manage the pickup must be the same that manage the drop
-            cp.post(new Element1DVar(visitedByVehicle,index[drop], managedBy[task_id]));
+            //cp.post(new Element1DVar(visitedByVehicle,index[drop], managedBy[task_id]));
+            cp.post(equal(managedBy[task_id],visitedByVehicle[pickup]));
+            //cp.post(equal(managedBy[task_id],visitedByVehicle[drop]));
 
 
             //Constrain to shrik the space
@@ -317,22 +320,31 @@ public class DialARide {
         selected.getAndSet(-1);
         IntVar xs=null;
         for (int i = 0; i < n; i++) {
-            if(!succ[i].isFixed() && pred[i].isFixed() && (selected.get()==-1 || succ[i].size()< xs.size() )){
-                selected.set(i);
-                xs=succ[i];
+            if(lns_started.get()==0) {
+                if (!succ[i].isFixed() && pred[i].isFixed() && (selected.get() == -1 || succ[i].size() > xs.size())) {
+                    selected.set(i);
+                    xs = succ[i];
+                }
+            }else{
+                if (!succ[i].isFixed() && pred[i].isFixed() && (selected.get() == -1 || succ[i].size() < xs.size())) {
+                    selected.set(i);
+                    xs = succ[i];
+                }
             }
         }
-
+        /*
         if(xs==null) { //maybe the last vehicle is one so try again
             selected.getAndSet(-1);
             xs=null;
             for (int i = 0; i < n; i++) {
-                if(!succ[i].isFixed() && pred[i].isFixed() && (selected.get()==-1 || succ[i].size()< xs.size() )){
+                if(!succ[i].isFixed() && pred[i].isFixed() && (selected.get()==-1 || succ[i].size()> xs.size() )){
                     selected.set(i);
                     xs=succ[i];
                 }
             }
         }
+
+         */
         //if now is null so all the variable are fixed
         return xs;
     }
@@ -434,7 +446,6 @@ public class DialARide {
                             cp.post(equal(succ[finalSelected], finalMostUrgentNode));
                         }catch (InconsistencyException e){
                             //System.out.println("Da "+finalSelected+"Sono tornato indetro da "+ best);
-
                             throw e;
                         }
                     },
@@ -501,6 +512,7 @@ public class DialARide {
             }
             curr_solution.getAndIncrement();
             allSolutions.add(curr_sol);
+            System.out.println("Solution\n"+curr_sol);
 
         });
 
@@ -620,8 +632,8 @@ public class DialARide {
 
         Random rand = new Random(0);
 
-        AtomicInteger failureLimit = new AtomicInteger(1000);
-        AtomicInteger percentage = new AtomicInteger(80);//2313 2320 23 21 20169
+        AtomicInteger failureLimit = new AtomicInteger(50);
+        AtomicInteger percentage = new AtomicInteger(70);//2313 2320 23 21 20169
 
         AtomicReference<List<Integer>> nodesToUnfix_at_last_iteration = new AtomicReference<>();
         AtomicInteger maxNodes= new AtomicInteger(3);
@@ -639,20 +651,45 @@ public class DialARide {
                     ()-> {
 
                         //Take the longest path
-
-
-
-
-                        lns_started.set(3);
+                        lns_started.set(1);
                         curr_run.getAndIncrement();
                         //System.out.println("Random Path");
-                        for (int j = 0; j < n; j++) {
-                            if (rand.nextInt(100) < percentage.get() && curr_run.get()%10!=0) {
-                                // after the solveSubjectTo those constraints are removed
-                                if(bestPath[j]>=first_end_depot) continue; //for all the vehicle dont set the end
-                                cp.post(equal(succ[j], bestPath[j]));
+
+                        /*
+                            Scegli un veicolo in maniera casuale e unfixa tutto il suo path
+
+                         */
+
+                        if(curr_run.get()>nVehicles && curr_run.get()%10!=0) {
+                            for (int j = 0; j < n; j++) {
+                                if (rand.nextInt(100) < percentage.get()) {
+                                    // after the solveSubjectTo those constraints are removed
+                                    if (bestPath[j] >= first_end_depot) continue; //for all the vehicle dont set the end
+                                    cp.post(equal(succ[j], bestPath[j]));
+                                }
+                            }
+
+                        }
+                        else {
+                            lns_started.set(2);
+                            int selected_vehicle= curr_run.get()<=nVehicles ? curr_run.get()-1 : rand.nextInt(nVehicles);
+                            System.out.println("SISTEMO IL PATH DEL VEHICLE"+selected_vehicle);
+                            ArrayList<Integer> nodesToUnfix = new ArrayList<>();
+                            int curr_node = selected_vehicle;
+                            while (curr_node < nVehicles + pickupRideStops.size() + dropRideStops.size()) {
+                                nodesToUnfix.add(curr_node);
+                                curr_node = bestPath[curr_node];
+                            }
+                            for (int j = 0; j < n; j++) {
+                                if (!nodesToUnfix.contains(j) ) {
+                                    // after the solveSubjectTo those constraints are removed
+                                    //if (bestPath[j] >= first_end_depot) continue; //for all the vehicle dont set the end
+                                    cp.post(equal(succ[j], bestPath[j]));
+                                }
+
                             }
                         }
+                        if(curr_run.get()==20) curr_run.set(1);
 
                         //System.out.println("ciao"+curr_run.get());
 
