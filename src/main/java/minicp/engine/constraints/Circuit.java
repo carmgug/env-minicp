@@ -69,14 +69,24 @@ public class Circuit extends AbstractConstraint {
         }
     }
     protected void fix(int i) {
-        int j = x[i].min(); // the city visited after city i
-        dest[orig[i].value()].setValue(dest[j].value());
-        orig[dest[j].value()].setValue(orig[i].value());
+        // Determine the city visited after city 'i'
+        int nextCity = x[i].min();
 
-        int new_length= lengthToDest[orig[i].value()].value() + lengthToDest[j].value()+1;
-        lengthToDest[orig[i].value()].setValue(new_length);
-        if(lengthToDest[orig[i].value()].value() < (x.length-1)){
-            x[dest[j].value()].remove(orig[i].value());
+        // Update the destination and origin of the involved cities
+        int origValue = orig[i].value();
+        int nextDestValue = dest[nextCity].value();
+
+        dest[origValue].setValue(nextDestValue);
+        orig[nextDestValue].setValue(origValue);
+
+        // Calculate and update the new length of the route
+        int newLength = lengthToDest[origValue].value() + lengthToDest[nextCity].value() + 1;
+        lengthToDest[origValue].setValue(newLength);
+
+        // Remove the original city 'i' from the set if the new length is less than the total number of cities minus one
+        if (newLength < x.length - 1) {
+            x[nextDestValue].remove(origValue);
         }
+
     }
 }
