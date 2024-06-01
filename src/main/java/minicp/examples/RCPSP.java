@@ -113,9 +113,10 @@ public class RCPSP extends OptimizationProblem {
         }
         // TODO 2: add the precedence constraints
         // successors[i] is the sucessors of activity i
-        for (int i=0; i<successors.length; i++) {
-            for (int j=0; j<successors[i].length; j++) {
-                cp.post(new LessOrEqual(end[i],start[successors[i][j]]));
+        for (int i = 0; i < successors.length; i++) {
+            IntVar endI = end[i];
+            for (int successor : successors[i]) {
+                cp.post(new LessOrEqual(endI, start[successor]));
             }
         }
         // TODO 3: minimize the makespan

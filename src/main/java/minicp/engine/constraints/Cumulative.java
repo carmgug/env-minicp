@@ -94,15 +94,12 @@ public class Cumulative extends AbstractConstraint {
             if (!start[i].isFixed()) {
                 int j = profile.rectangleIndex(start[i].min());
                 for (int t = start[i].min(); t < start[i].min()+duration[i]; t++){
-
                     // if not in the mandatory part
-                    if (!(t >= start[i].max() && t < start[i].min() + duration[i])){
-
+                    if (t < start[i].max() || t >= start[i].min() + duration[i]){
                         // take the right rectangle
                         if (profile.rectangles()[j].end() <= t) {
                             j = profile.rectangleIndex(t);
                         }
-
                         // check space
                         if (capa < profile.rectangles()[j].height() + demand[i]){
                             start[i].removeBelow(profile.rectangles()[j].end());
